@@ -1,0 +1,62 @@
+---
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+## Stat 495 - Homework #0 - Due by class on Wednesday, September 6th
+
+This assignment serves to be sure your GitHub repo access for class is setup appropriately and with suitable organization, including the Portfolio component. This needs to be completed before our first class so that 1) you can pull materials from the class repository (within the class organization) and 2) I have access to your private course repo (not within the class organization).  
+
+0. Reference the posted Github Guide for Stat 495 for expectations for the class about R and Github. If you need to install or update anything, use the guide to help you. If you are still using the R server, I strongly encourage you to swap to using R/RStudio and Git/Github on your own machine, which requires some setup. 
+
+1. Reference the posted Github Guide for Stat 495 to set up your private repo (and grant me access) for the course. 
+
+2. Continuing with the Guide, accept your invite to the class Github organization. This should grant you access to the class content repo, which will allow you to access course materials throughout the semester. Once you have access to the class repo, a copy of the Guide will be in the Resources folder for your reference. You can access this via the web too. Invites were sent the week of 8/21.  
+
+3. Following along with the final setup instructions in the Guide, be sure you have access to both repos through R or through the Github Desktop app. 
+
+Now that your access is complete, you can work on including the following in your personal repo for the course:
+
+4. Update your personal repo readme to include the following three items: 
+
+* Your goals for the course  
+* Thoughts on what you'd like to do after graduation and what steps you've taken so far to get there  
+* Something fun, interesting, or neat that you did or will remember from the summer    
+
+5. Create a homework folder in your personal repo and put a copy of this assignment in it (just pdf is fine). Future homework assignments should have both the  compiled .Rmd as a .pdf and the .Rmd itself for the *completed* assignment inside the homework folder. You should get in the habit of getting the homework file from the class repo when posted, copying it there, and then working in that folder for the assignment - commit and push often! You will also have to load a .pdf to Gradescope. 
+
+6. Create a lab folder in your personal repo and either grab the first lab file or put a placeholder .txt file in it for now. Future labs should go here. Once one lab has been uploaded, you can delete the placeholder file. 
+
+The class content repo will have homework and lab folders so you can emulate the structure. It will not have the portfolio folder below - that's just for you. 
+
+7. Create a portfolio folder in your personal repo. In this folder, please assemble as many of the following items as you can find:  
+
+* Your Intro stats end of semester project report, if applicable
+* Your Stat 230 end of semester project report and any writing assignments from the course, if applicable
+* Your Stat 231 project report(s)
+* Project reports and writing assignments from other statistics courses (electives, Stat 360 / Stat 370 as appropriate, etc.)
+* Any reports from non-statistics courses or projects that you used statistics in
+
+You only need the writing aspects of the reports, but that might include technical appendices - just pdfs are fine. You don't need to worry about uploading data sets for any of these, etc. We are creating this folder so you can explore your progress as a student of statistics. You will look back at what you have compiled during the semester.
+
+Please be sure to name files descriptively and create a readme.txt for this folder that includes a list of the file names and what they correspond to. Add information about when you took each course. For example, your readme for this folder might look like:
+
+IntroStatsReport - Regression project on BLAH - Fall 2019      
+Stat230Report - Multiple regression project on BLAH - Spring 2020  
+PoliSciReport - Report on BLAH - Fall 2020  
+Stat231CalendarQuery - Report on BLAH - Spring 2021  
+Stat231FinalProject - Report on BLAH - Spring 2021  
+Stat225FinalProject - Report on BLAH - Spring 2022  
+
+If you cannot find at least TWO reports to put in this folder, please let me know. 
+
+If you have any issues creating the required folders, etc., please let me know so I can assist. 
+

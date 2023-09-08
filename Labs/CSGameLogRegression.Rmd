@@ -1,0 +1,160 @@
+---
+title: "Stat 495 - Logistic Regression Practice - CS Game"
+author: "A.S. Wagaman"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+## Stat 495 - CS Game 
+
+```{r, include = FALSE}
+library(mosaic)
+library(readr)
+library(Stat2Data)
+library(lmtest)
+library(broom)
+library(DescTools)
+library(car)
+```
+
+
+```{r}
+csgame <- read.csv("https://awagaman.people.amherst.edu/stat495/csgame.csv", header = T)
+```
+
+A student at Amherst has written a portion of a video game while studying the behavior of some computer algorithms. For a particular encounter in the video game, ten different inputs are used to determine the outcome of the encounter - i.e. whether the player wins or loses a fight against a monster. A set of 190 test instances of the encounter have had their inputs recorded, as well as the outcome. The data set is available as csgame.csv. 
+
+The inputs are: BaseAttack, BaseDefense, Charisma, Constitution, Dexterity, Intelligence, MagicDefense, MonsterAttack, MonsterMagic, and ZoneLevel. The first 7 inputs are player attributes and higher values denote a stronger player character. You should note that BaseDefense is based on armor, and MagicDefense is not, and also that it is usually the case that characters in plate armor (the strongest usually available in these sorts of games) are usually not strong magic users, and vice versa (magic users often wear cloth armor, generally the weakest available). The 8th and 9th input variables are monster attributes where higher values indicate a stronger, more powerful monster. Finally, ZoneLevel is an indication of how hard the zone where the encounter takes place is (higher values should be a harder zone). Some of the input names are based on concepts from Dungeons and Dragons.
+
+The outcome variable is provided both numerically as 0 and 1 and categorically as Loss and Win (Loss=0; Win=1) in the variables OutcomeNum and Outcome, respectively. 
+
+Another student wants to play the game and win the encounter, and is looking for guidance as to how to approach that. For example, should they develop a character with high Dexterity or one with high Charisma if they want to win the encounter?
+
+Your task is to examine the data set and perform a relevant analysis to assist the students (predict the outcome using the input variables).  Provide relevant interpretations of your findings for the student who wants to win the encounter as well as for the student who has written the game. 
+
+### Analysis
+
+# relationships between potential predictors and intended response variable
+```{r}
+ggplot(csgame, aes(x = as.factor(Outcome), y = BaseAttack)) +
+  geom_boxplot() +
+  labs(x = "Win?")
+
+ggplot(csgame, aes(x = as.factor(Outcome), y = BaseDefense)) +
+  geom_boxplot() +
+  labs(x = "Win?")
+
+ggplot(csgame, aes(x = as.factor(Outcome), y = Charisma)) +
+  geom_boxplot() +
+  labs(x = "Win?")
+
+ggplot(csgame, aes(x = as.factor(Outcome), y = Constitution)) +
+  geom_boxplot() +
+  labs(x = "Win?")
+
+ggplot(csgame, aes(x = as.factor(Outcome), y = Dexterity)) +
+  geom_boxplot() +
+  labs(x = "Win?")
+```
+
+# multi-collinearity
+```{r}
+ggplot(csgame, aes(x = BaseAttack, y = BaseDefense)) +
+  geom_point(alpha = 0.3)
+
+ggplot(csgame, aes(x = Charisma, y = Dexterity)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+# Add log Price
+# csgame <- mutate(csgame, logOutcomeNum = log(OutcomeNum))
+
+#Fit model and get basic output
+mod1 <- glm(OutcomeNum ~ BaseAttack + BaseDefense + Charisma + Constitution + Dexterity + Intelligence + MagicDefense + MonsterAttack + MonsterMagic + ZoneLevel, data = csgame, family = binomial(logit))
+msummary(mod1)
+
+# Check collinearity
+vif(mod1)
+```
+
+```{r}
+# Show other tests and output
+lrtest(mod1)
+exp(confint(mod1))
+logmaugment <- augment(mod1, type.predict = "response")
+```
+
+```{r}
+mod2 <- glm(OutcomeNum ~ BaseDefense + MagicDefense, data = csgame, family = binomial(logit))
+msummary(mod2)
+```
+
+```{r}
+mod2augment <- mod2 %>% augment(type.predict = "response")
+names(mod2augment)
+head(mod2augment)
+```
+
+# probability estimated for win
+```{r}
+favstats(~ .fitted, data = mod2augment)
+```
+
+# binary predictions for each subject
+```{r}
+mod2augment <- mutate(mod2augment, binprediction = round(.fitted, 0))
+tally(~ binprediction, data = mod2augment)
+```
+
+Hmm. 41% of restaurants were implied to be in the guide, based on using the 50% cutoff. 
+
+```{r}
+68/164
+```
+
+How does that reflect reality?
+
+```{r}
+tally(~ InMichelin, data = mod2augment)
+74/164
+```
+
+Really, about 45% ended up in the guide, so at least we aren't predicting a very different value from that.
+
+It is possible to find the fitted values so skewed that say, none of them are over 50%, or maybe only 8% are over 50% but the data shows 20% in that group. We can use the data's percentage to alter our cutoff (this is done more appropriately with a training/test data set, but here it is for illustration). 
+
+If we made no adjustment, this is what we would get (confusion matrix):
+
+```{r}
+with(mod2augment, table(csgame, binprediction))
+correct <- (79+57)/164; correct
+```
+
+We are almost 83% correct using the 50% cutoff. Does adjusting the fraction in the guide up help? We know that roughly 45% were in the guide, and that means 55% were not. 
+
+```{r}
+with(mod2augment, quantile(.fitted, 1-0.45)) #get 55th quantile
+# Split predictions based on quantile, not just using 0.5
+mod2augment <- mutate(mod2augment, binprediction2 = as.numeric(.fitted > 0.4655586))
+tally(~ binprediction2, data = mod2augment)
+```
+
+Now the confusion matrix looks like:
+
+```{r}
+with(mod2augment, table(InMichelin, binprediction2))
+correct2 <- (79+63)/164; correct2
+```
+
+```{r}
+PseudoR2(mod2, "all")
+```
