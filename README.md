@@ -9,5 +9,9 @@ Over this past summer, I studied our planet's orbital debris environment through
 
 # Portfolio Contents
 - stat231_calendarquery - Data wrangling and visualization project on time distribution among activities - Spring 2022
-- stat230_finalreport - Multiple regression project on factors affecting income - Fall 2022
 - stat231_finalreport - Data analysis project on Apple Music trends and topics - Spring 2022
+- stat230_finalreport - Multiple regression project on factors affecting income - Fall 2022
+- stat320_catsconsulting - Multiple regression project on factors affecting recurrence of urethral obstruction in cats - Spring 2023
+- stat320_finalsummary - 3-page summary of multiple regression project on factors affecting occurence of bullying in adolescents - Spring 2023
+- stat320_lostmail - Survey analysis project on case study of magazine issues - Spring 2023
+- stat320_technicalappendix - In-depth report of multiple regression project on factors affecting occurence of bullying in adolescents - Spring 2023
