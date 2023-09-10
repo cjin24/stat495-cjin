@@ -1,0 +1,238 @@
+---
+title: "An Investigation that Explores the Importance of Catheters and the Recurrence of Urethral Obstruction"
+author: "Brandon Kwon, Cassandra Jin, Braedon Fiume, Camden Heafitz"
+date: "February 20th, 2023"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, setup, include = FALSE}
+require(mosaic)   # Load additional packages here
+library(ggplot2)
+library(dplyr)
+library(tm)
+library(topicmodels)
+library(tidyverse)
+library(kableExtra)
+library(janitor)
+library(wordcloud)
+library(textdata)
+library(SnowballC)
+library(stringr)
+library(tidyr)
+library(dplyr)
+library(textmineR)
+library(mosaic)
+library(GGally)
+library(stats)
+library(leaps)
+library(readxl)
+library(cowplot)
+
+
+knitr::opts_chunk$set(
+  tidy=FALSE,   
+  size="small")  
+```
+
+
+```{r, include= FALSE}
+require(dplyr)
+require(mosaic)   # Load additional packages here 
+require(Amelia)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+trellis.par.set(theme=theme.mosaic()) # change default color scheme for lattice
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+```
+
+
+```{r, include = FALSE}
+catsA <- read.csv("http://pmatheson.people.amherst.edu/CatsSet.csv")
+```
+
+
+``` {r, include = FALSE}
+
+#Get rid of pesky NA's in quantitative sets and replace with the average
+catsA$Age[is.na(catsA$Age)] <- mean(catsA$Age,na.rm=T)
+catsA$Weight..lbs.[is.na(catsA$Weight..lbs.)] <- mean(catsA$Weight..lbs.,na.rm=T)
+catsA$pH[is.na(catsA$pH)] <- mean(catsA$pH,na.rm=T)
+catsA$BG[is.na(catsA$BG)] <- mean(catsA$BG,na.rm=T)
+catsA$iCa[is.na(catsA$iCa)] <- mean(catsA$iCa,na.rm=T)
+catsA$K[is.na(catsA$K)] <- mean(catsA$K,na.rm=T)
+catsA$Lac[is.na(catsA$Lac)] <- mean(catsA$Lac,na.rm=T)
+catsA$BUN[is.na(catsA$BUN)] <- mean(catsA$BUN,na.rm=T)
+catsA$Creat[is.na(catsA$Creat)] <- mean(catsA$Creat,na.rm=T)
+catsA$TS[(catsA$TS)=="No bloodwork"] <- NA
+catsA$PCV[(catsA$PCV)=="No bloodwork"] <- NA
+catsA$TS[(catsA$TS)==""] <- NA
+catsA$PCV[(catsA$PCV)==""] <- NA
+catsA$PCV<-as.numeric(catsA$PCV)
+catsA$TS<-as.numeric(catsA$TS)
+catsA$PCV[is.na(catsA$PCV)] <- mean(catsA$PCV,na.rm=T)
+catsA$TS[is.na(catsA$TS)] <- mean(catsA$TS,na.rm=T)
+catsA$Temp[is.na(catsA$Temp)] <- mean(catsA$Temp,na.rm=T)
+catsA$HR[is.na(catsA$HR)] <- mean(catsA$HR,na.rm=T)
+catsA$Urine.protein[(catsA$Urine.protein)=="Not checked"] <- NA
+catsA$Urine.protein<-as.numeric(catsA$Urine.protein)
+catsA$Urine.protein[is.na(catsA$Urine.protein)] <- mean(catsA$Urine.protein,na.rm=T)
+catsA$USG[(catsA$USG)=="Not checked"] <- NA
+catsA$USG<-as.numeric(catsA$USG)
+catsA$USG[is.na(catsA$USG)] <- mean(catsA$USG,na.rm=T)
+catsA$Urine.pH[(catsA$Urine.protein)=="Not checked"] <- NA
+catsA$Urine.pH<-as.numeric(catsA$Urine.pH)
+catsA$Urine.pH[is.na(catsA$Urine.pH)] <- mean(catsA$Urine.pH,na.rm=T)
+
+catsA$Diet[(catsA$Diet=="DRY")] <- "Dry"
+catsA$Diet[(catsA$Diet=="Unknown")] <- "Dry"
+catsA$Access.to.outdoors.[(catsA$Access.to.outdoors.=="Unknonw")] <- "No"
+catsA$Access.to.outdoors.[(catsA$Access.to.outdoors.=="Unknown")] <- "No"
+catsA$Stress[(catsA$Stress=="Unknown")] <- "No"
+catsA$Previous.FLUTD.signs.[(catsA$Previous.FLUTD.signs.=="Unknown")] <- "Yes"
+catsA$Vx.[(catsA$Vx.=="Unknown")] <- "Yes"
+catsA$PMHx[(catsA$PMHx=="Unknown")] <- "No"
+
+catsA$Size.of.u.cath[(catsA$Size.of.u.cath=="Slippery Sam")] <- 3.5
+catsA$Flush.[(catsA$Flush.=="Unknown")] <- "Yes"
+catsA$Bolus.[(catsA$bolus=="Unknown")] <- "Yes"
+catsA$Severe.illness.[(catsA$Severe.illness.=="Undetermined")] <- "No"
+
+catsA$Anemia.[(catsA$Anemia.=="Not checked")] <- "No"
+catsA$Became.anemic.[(catsA$Became.anemic.=="Not rechecked")] <- "No"
+catsA$Became.anemic.[(catsA$Became.anemic.=="No bloodwork")] <- "No"
+catsA$Crystals[(catsA$Crystals=="Not checked")] <- "Yes"
+catsA$Urine.WBC[(catsA$Urine.WBC=="Not checked")] <- NA
+catsA$Urine.RBC[(catsA$Urine.RBC=="Not checked")] <- NA
+
+
+data2<-na.omit(catsA) #work with this data - doesn't have any N/As
+```
+
+
+```{r, include = FALSE}
+# Create New Dataset Containing Only Relevant Variables
+cats_Final <- catsA %>%
+  select(Time..min., Repeat.UO., Size.of.u.cath, Other.cath, Difficulty, Hrs.of.cath) %>%
+  filter(!is.na(Repeat.UO.))
+```
+
+
+```{r, include = FALSE}
+# Fisher's Exact Test on Designated Variables
+
+# Time.Min
+df_time.min <- data.frame("Repeat.UO." = c(2, 2, 4), "No Repeat.UO." = c(15, 25, 16), row.names = c("Less than 2 Min", "2-5 Min", "Greater than 5 Min"))
+df_time.min
+```
+
+# Background
+Feline lower urinary tract disease (FLUTD) is a common and potentially serious condition that affects cats. It is a term used to describe a range of conditions that affect the urinary system of cats, including the bladder, urethra, and ureters. FLUTD can be caused by a variety of factors, such as bladder stones, urinary tract infections, and inflammation of the bladder. The symptoms of FLUTD include frequent attempts to urinate, difficulty urinating, bloody or cloudy urine, and vocalization while urinating. If left untreated, FLUTD can lead to blockages of the urinary tract, which can cause kidney damage, and even death.
+
+## Aims
+We were tasked to investigate what factors, specifically in the perspective of medical equipment, played a role in the recurrence of UO (or urethral obstruction), which is a significant symptom of FLUTD.  In the standardized procedure to treat FLUTD, veterinarian surgeons utilize catheters to remove the blockage. The diameter, flexibility, stiffness, length, material, type, and the time the catheter is left inside the cat are all factors that vary from procedure to procedure. To determine what influences the recurrence of UO, we decided to look at the following variables: the time it took to insert the catheter (in minutes), the difficulty of insertion of the catheter, the diameter of the catheter (in mm), the measurement of how long the catheter was inside the cat (in hrs), and whether or not another type of catheter was used.
+
+# Methods
+The set of participants in our study included 86 indoor male cats with UO. The participants were treated by a plethora of doctors at three clinics connected through the same hospital network.
+
+# Univariate Analyses
+Before we proceeded to investigate any associations between our chosen predictors and the recurrence of UO, we obtained a glimpse of the number of cats that fit into each category of each variable.  
+
+```{r echo = FALSE, warning = FALSE, fig.align = "center", fig.height = 2, fig.width = 10}
+# Univariate analyses
+p1 <- gf_bar(~ Time..min., data = cats_Final, 
+             ylab = "Frequency",
+             xlab = "Time of Insertion (min)")
+p2 <- gf_bar(~ Size.of.u.cath, data = cats_Final, 
+             ylab = "Frequency",
+             xlab = "Size of Urinary Catheter (mm)")
+p3 <- gf_bar(~ Other.cath, data = cats_Final, 
+             ylab = "Frequency",
+             xlab = "Other Catheter Used")
+p5 <- gf_dens(~ Hrs.of.cath, data = cats_Final, 
+              ylab = "Density", 
+              xlab = "Hours of Catheter Left In Cat")
+
+# Plotting the above plots in a grid
+cowplot::plot_grid(p1, p2, p3, p5, ncol = 2)
+```
+
+There was an even distribution among the groups of time of insertion, while for most of the recorded patients, the diameters of the urinary catheters were 5 mm.  The distribution of our continuous variable, the number of hours the catheter was left inside each cat, was unimodal and right-skewed, centered at around 25 hours, suggesting that most doctors chose to leave the catheter inside the patient for that amount of time.
+
+# Results
+
+## Fisher's Exact Test
+Out of the five predictors involved in our investigation, we observed that four of them were categorical.  In other words, four of them had values that one can place into a countable number of distinct groups based on their respective characteristics.  These variables were the size of the catheter (in diameter), the time it took to insert the catheter into the cat, the difficulty of inserting the catheter, and the possibility of whether or not a different type of catheter was used.  Therefore, to accurately assess how these variables were associated with the recurrence of UO, we utilized a method called "Fisher's Exact Test."  This test is a statistical significance test used to determine if there are nonrandom associations between two categorical variables.  
+
+The results from this significant test on all four variables led us to conclude that there was a weak to no association between the recurrence of UO and these categorical variables. 
+
+## Boxplot of How Long Catheter Is in Cat (in Hrs) vs. Recurrence of UO 
+For our one continuous predictor (how long the catheter is inside the cat (in hrs)), we created a boxplot graphic that showed the differences in cats that experienced a recurrence of UO with those that did not experience a recurrence of UO, based on how long the catheters were inside the cats.  In essence, boxplots are standardized ways of displaying the distribution of data that makes it easy to investigate distinctions among different variables.  
+
+```{r, echo = FALSE, fig.align = "center", fig.height = 2, fig.width = 5}
+# Boxplot of Hrs of Catheter
+Hrs_of_Cath <- ggplot(cats_Final, aes(x = Repeat.UO., y = Hrs.of.cath)) +
+  geom_boxplot() + 
+  labs(x = "The Recurrence of UO", y = "Time of Catheter Inside Cat (Hrs)") +
+  ggtitle("How Long Catheter is in Cat vs. Recurrence of UO") +
+  theme(plot.title = element_text(hjust = 0.5), axis.title = element_text(size = 7)) 
+Hrs_of_Cath      
+```
+
+Based on this graph, there seems to be a noticeable association between the recurrence of UO and the amount of time the catheter was inside the cat.  There is a lesser likelihood of the recurrence of UO when the catheter is inside the cat for longer periods of time.
+
+## Logistic Regression
+We then proceeded to create a logistic regression model that involved the continuous variable of interest and the recurrence of UO to confirm that there was an association between how long the catheter is inside the cat and the recurrence of UO.  Logistic regression is a statistical analysis method that predicts the success of a certain outcome based on prior observations and predictors.  
+
+```{r, include = FALSE}
+# Logistic Regression Analyses
+cats_Final1 <- cats_Final %>%
+  mutate(repeat.uo = as.factor(case_when(Repeat.UO. == "No" ~ 1,
+                   Repeat.UO. == "Yes" ~ 0)))
+
+LogRepeat.UO <- glm(repeat.uo ~ Hrs.of.cath, data = cats_Final1, family = binomial(logit))
+msummary(LogRepeat.UO)
+```
+
+Our final model that resulted from this method was as shown:
+$\widehat{log(odds)} = 0.097(hrs.of.cath) - 0.174$
+
+To describe this model more deeply, it states for every additional hour that the catheter was left inside the cat, it was  e^0.097 = 1.10 times more likely that there was no recurrence of UO.  Our code output also confirmed that our continuous variable was significant in predicting the recurrence of UO.
+
+# Final Thoughts and Conclusions
+According to our analyses, the longer the catheter was left inside the patient, the greater the odds of UO not returning. Additionally, there was no association between a recurrence of UO and time needed to insert the catheter, difficulty of inserting the catheter, size of the catheter, or use of another catheter.
+
+Since the dataset consisted of 86 male indoor cats with UO, these results and conclusions only applied to this specific group of patients. There were also multiple instances of missing values, which reduced the amount of data on which we could perform analyses. After the medical procedure, researchers attempted to contact the owners of the cats that underwent the procedure, but there were some whose cats did not show further signs of the disease and others who chose not to return for more data collection. A further limitation lies in the methods of analysis that we chose to use and the variables taken into consideration. Since we did not include the cats’ diets, medications (during and after the procedure), sedation protocols, etc., our analysis was not comprehensive of all of the factors that could have significant relationships with the appearance of FLUTD in cats. More broadly, there are conditions that historically appear to be associated with FLUTD, including obesity and cats residing only indoors. Such lurking variables may have underlying associations with the disease, but we were unable to observe data on these conditions; therefore, our results lie only in the narrow scope of the variables included in the study.
+
+From our analysis of the data, we recommend maintaining the current level of medical device production and distribution. Since there is only evidence of a significant relationship between the number of hours of the catheter being inside the cat and UO recurring, it is more important to consider how the medical equipment is being used by the veterinarian than what kind it is. When distributing the devices to clinics and hospitals, doctors should be advised to leave the catheter in for longer periods of time rather than shorter. We found no significant evidence of other relevant variables being associated with UO returning, so we conclude that there is no relationship between the performance of the medical devices themselves and recurrence of UO in indoor male cats.
+
+
+```{r, include = FALSE}
+# Size.of.U.Cath
+df_size.cath <- data.frame("Repeat.UO." = c(3, 6, 0), "No Repeat.UO." = c(23, 54, 1), row.names = c("3.5 Inches", "5 Inches", "Slippery Sam"))
+df_size.cath
+mosaicplot(df_size.cath, color = TRUE)
+fisher.test(df_size.cath)
+
+#Other.Cath
+df_other.cath <- data.frame("Repeat.UO." = c(6, 3), "No Repeat.UO." = c(61, 18), row.names = c("No", "Yes"))
+df_other.cath
+mosaicplot(df_other.cath, color = TRUE)
+fisher.test(df_other.cath)
+
+#Difficulty
+df_difficulty <- data.frame("Repeat.UO." = c(4, 5), "No Repeat.UO." = c(38, 40), row.names = c("Difficult", "Easy"))
+df_difficulty
+mosaicplot(df_difficulty, color = TRUE)
+fisher.test(df_difficulty)
+```

@@ -1,0 +1,987 @@
+---
+title: "Investigating Bullying Factors in Adolescents"
+author: "Kayla Ko, Tracy Huang, Cassie Jin"
+date: "5/8/23"
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r setup, include=FALSE}
+# Load packages
+library(dplyr)
+library(mosaic)   
+library(tidyr)
+library(ggplot2)
+library(GGally)
+library(haven)
+library(tidyverse)
+library(cluster)
+library(ggmosaic)
+library(foreign)
+library(MASS)
+library(Hmisc)
+library(reshape2)
+library(brant)
+library(VGAM)
+library(ordinal)
+library(car)
+library(gridExtra)
+library(rcompanion)
+library(Stat2Data)
+library(glmnet)
+
+library(janitor)
+library(knitr)
+library(vcd)
+library(tree)
+library(rpart)
+library(rpart.plot)
+library(pROC)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract 
+
+This technical appendix investigates a dataset from the Global School-Based Student Health Survey (GSHS). The data consist of responses from a school-based, self-administered questionnaire assessing adolescents’ demographics, family, and social factors related to bullying. We seek to answer the following questions: (1) which factors are associated with an adolescent being cyberbullied/bullied (2) which factors are associated with physical attack severity levels in bullying (3) can a classification model predict whether an adolescent was bullied based on various factors with a reasonable accuracy rate. Through logistic regression and ordinal logistic regression, we find that many factors, such as an adolescent’s gender and loneliness level, are associated with in-person bullying, cyberbullying, and more frequent physical attacks. Through a classification tree model, we find that we can predict whether an adolescent is bullied or not based on information about loneliness and physical attacks, with an accuracy rate of 65.9%. We conclude with recommendations that schools and parents can implement to prevent or reduce bullying for adolescents. 
+
+# Introduction
+
+Bullying is a pervasive problem that negatively affects the wellbeing of students in all aspects of their lives. The 2019 National Center for Educational Statistics estimates that 1 out of 5 kids is bullied. Additionally, from the CDC's Youth Risk Behavior Surveillance System survey, 5.4 million kids stay at home at any given day in fear of being bullied. Thus, it is critical to better understand which factors are associated with bullying to create more targeted support systems and bullying prevention programs. This project aims to:
+
+(1) Identify which factors are associated with an adolescent being cyberbullied/bullied, which will allow us to identify bullying risk factors that can be prevented or alleviated in adolescents.
+
+(2) Understand which factors are associated with physical attack severity levels in bullying, to assist with identifying risk factors of being physically attacked for adolescents.
+
+(3) Run a classification model to accurately predict whether an adolescent was bullied based on various factors, which can assist with predicting bullying in other student populations.
+
+# Dataset and Wrangling
+
+The data set we used consists of data from the Global School-Based Student Health Survey (GSHS), a school-based survey which uses a self-administered questionnaire to obtain data on adolescent’s demographics, family, and social factors related to bullying. The survey was conducted in Argentina in 2018 with 56,981 student participants. 
+
+After cleaning the data, there were 32,938 observations and twenty variables. 
+
+```{r readin data, include = FALSE}
+# read in data
+data <- read.delim("Bullying_2018.csv", na.strings=c("", "NA"), sep = ";") %>%
+  clean_names()
+```
+
+The variables in our dataset:
+
+```{r}
+glimpse(data)
+```
+
+```{r data wrangling, include = FALSE}
+# remove missing values
+completedata <- replace(data, data ==' ', NA)
+completedata <- na.omit(completedata)
+```
+
+```{r, include = FALSE}
+# create data set for binary logistic regression model (in section Question 1)
+
+completedata_cleaned <- completedata %>%
+  mutate(bullied_on_school_property_in_past_12_months = ifelse(bullied_on_school_property_in_past_12_months == "Yes", 1, 0),
+         bullied_not_on_school_property_in_past_12_months = ifelse(bullied_not_on_school_property_in_past_12_months == "Yes", 1, 0),
+         cyber_bullied_in_past_12_months = ifelse(cyber_bullied_in_past_12_months == "Yes", 1, 0),
+  bullied_on_school_property_in_past_12_months <- as.numeric(bullied_on_school_property_in_past_12_months), 
+  bullied_not_on_school_property_in_past_12_months <- as.numeric(bullied_not_on_school_property_in_past_12_months),
+  cyber_bullied_in_past_12_months <- as.numeric(cyber_bullied_in_past_12_months)) %>% 
+  # clean age
+  separate(custom_age,
+           into = c("age", "years", "old"),
+           sep = " ",
+           remove = FALSE) %>%
+  dplyr::select(custom_age,
+         age,
+         years,
+         old,
+         everything()) %>%
+  dplyr::select(-custom_age,
+         -years,
+         -old) %>%
+  mutate(age = as.numeric(age)) %>%
+  
+  #clean physically_attacked
+  separate(physically_attacked,
+           into = c("physically_attacked2", "times"),
+           sep = " ",
+           remove = FALSE) %>%
+  dplyr::select(physically_attacked,
+         physically_attacked2,
+         times,
+         everything()) %>%
+  dplyr::select(-physically_attacked,
+         -times) %>%
+  rename(physically_attacked = physically_attacked2) %>%
+  mutate(physically_attacked = as.numeric(physically_attacked)) %>%
+  
+  # clean physical_fighting
+  separate(physical_fighting,
+           into = c("physical_fighting2", "times"),
+           sep = " time",
+           remove = FALSE) %>%
+  dplyr::select(physical_fighting,
+         physical_fighting2,
+         times,
+         everything()) %>%
+  dplyr::select(-physical_fighting,
+         -times) %>%
+  rename(physical_fighting = physical_fighting2)
+
+glimpse(completedata_cleaned)
+
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "2 or 3"] <- 2.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "3 or 4"] <- 3.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "4 or 5"] <- 4.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "5 or 6"] <- 5.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "6 or 7"] <- 6.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "7 or 8"] <- 7.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "8 or 9"] <- 8.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "9 or 10"] <- 9.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "10 or 11"] <- 10.5
+completedata_cleaned$physical_fighting[completedata_cleaned$physical_fighting == "12 or more"] <- 12
+
+completedata_cleaned <- completedata_cleaned %>%
+  mutate(physical_fighting = as.numeric(physical_fighting))
+
+# clean close_friends
+completedata_cleaned$close_friends[completedata_cleaned$close_friends == "3 or more"] <- 3
+completedata_cleaned <- completedata_cleaned %>%
+  mutate(close_friends = as.numeric(close_friends))
+
+# clean miss_school_no_permission
+completedata_cleaned <- completedata_cleaned %>%
+  separate(miss_school_no_permission,
+           into = c("miss_school_no_permission2", "days"),
+           sep = " day",
+           remove = FALSE) %>%
+  dplyr::select(miss_school_no_permission,
+         miss_school_no_permission2,
+         days,
+         everything()) %>%
+  dplyr::select(-miss_school_no_permission,
+         -days) %>%
+  rename(miss_school_no_permission = miss_school_no_permission2)
+
+completedata_cleaned$miss_school_no_permission[completedata_cleaned$miss_school_no_permission == "1 or 2"] <- 1.5
+completedata_cleaned$miss_school_no_permission[completedata_cleaned$miss_school_no_permission == "3 to 5"] <- 4
+completedata_cleaned$miss_school_no_permission[completedata_cleaned$miss_school_no_permission == "6 to 9"] <- 7.5
+completedata_cleaned$miss_school_no_permission[completedata_cleaned$miss_school_no_permission == "10 or more"] <- 10
+
+# clean felt_lonely
+completedata_cleaned$felt_lonely[completedata_cleaned$felt_lonely == "Never"] <- 0
+completedata_cleaned$felt_lonely[completedata_cleaned$felt_lonely == "Rarely"] <- 1
+completedata_cleaned$felt_lonely[completedata_cleaned$felt_lonely == "Sometimes"] <- 2
+completedata_cleaned$felt_lonely[completedata_cleaned$felt_lonely == "Most of the time"] <- 3
+completedata_cleaned$felt_lonely[completedata_cleaned$felt_lonely == "Always"] <- 4
+
+# clean other_students_kind_and_helpful
+completedata_cleaned$other_students_kind_and_helpful[completedata_cleaned$other_students_kind_and_helpful == "Never"] <- 0
+completedata_cleaned$other_students_kind_and_helpful[completedata_cleaned$other_students_kind_and_helpful == "Rarely"] <- 1
+completedata_cleaned$other_students_kind_and_helpful[completedata_cleaned$other_students_kind_and_helpful == "Sometimes"] <- 2
+completedata_cleaned$other_students_kind_and_helpful[completedata_cleaned$other_students_kind_and_helpful == "Most of the time"] <- 3
+completedata_cleaned$other_students_kind_and_helpful[completedata_cleaned$other_students_kind_and_helpful == "Always"] <- 4
+
+# clean parents_understand_problems
+completedata_cleaned$parents_understand_problems[completedata_cleaned$parents_understand_problems == "Never"] <- 0
+completedata_cleaned$parents_understand_problems[completedata_cleaned$parents_understand_problems == "Rarely"] <- 1
+completedata_cleaned$parents_understand_problems[completedata_cleaned$parents_understand_problems == "Sometimes"] <- 2
+completedata_cleaned$parents_understand_problems[completedata_cleaned$parents_understand_problems == "Most of the time"] <- 3
+completedata_cleaned$parents_understand_problems[completedata_cleaned$parents_understand_problems == "Always"] <- 4
+
+completedata_cleaned$close_friends <- as.numeric(completedata_cleaned$close_friends)
+completedata_cleaned$felt_lonely <- as.numeric(completedata_cleaned$felt_lonely)
+completedata_cleaned$miss_school_no_permission = as.numeric(completedata_cleaned$miss_school_no_permission)
+completedata_cleaned$missed_classes_or_school_without_permission <- as.factor(completedata_cleaned$missed_classes_or_school_without_permission)
+completedata_cleaned$most_of_the_time_or_always_felt_lonely <- as.factor(completedata_cleaned$most_of_the_time_or_always_felt_lonely)
+completedata_cleaned$other_students_kind_and_helpful <- as.numeric(completedata_cleaned$other_students_kind_and_helpful)
+completedata_cleaned$parents_understand_problems <- as.numeric(completedata_cleaned$parents_understand_problems)
+completedata_cleaned$sex <- as.factor(completedata_cleaned$sex)
+completedata_cleaned$were_underweight <- as.factor(completedata_cleaned$were_underweight)
+completedata_cleaned$were_overweight <- as.factor(completedata_cleaned$were_overweight)
+completedata_cleaned$were_obese <- as.factor(completedata_cleaned$were_obese)
+glimpse(completedata_cleaned)
+completedata_cleaned <- completedata_cleaned %>%
+  mutate(total = rowSums(completedata_cleaned[,c("bullied_not_on_school_property_in_past_12_months", "bullied_on_school_property_in_past_12_months")]),
+         isBulliedInPerson = as.factor(ifelse(total > 0, 1, 0)),
+         isCyberbullied = as.factor(ifelse(cyber_bullied_in_past_12_months > 0, 1, 0)))
+```
+
+```{r, include = FALSE}
+# create data set for ordinal logistic regression model (in section Question 2)
+physical_attack_data <- completedata %>% dplyr::select(physically_attacked, parents_understand_problems, close_friends, were_obese, most_of_the_time_or_always_felt_lonely,
+                                                sex, other_students_kind_and_helpful) %>%
+                                         mutate(physical_attack_severity = case_when(grepl("0 times", physically_attacked) ~ "Low",
+                                                                                     grepl("1 time", physically_attacked) ~ "Low",
+                                                                                     grepl("2 or 3 times", physically_attacked) ~ "Medium",
+                                                                                     grepl("4 or 5 times", physically_attacked) ~ "Medium",
+                                                                                     grepl("6 or 7 times", physically_attacked) ~ "Medium",
+                                                                                     grepl("8 or 9 times", physically_attacked) ~ "High",
+                                                                                     grepl("10 or 11 times", physically_attacked) ~ "High",
+                                                                                     grepl("12 or more times", physically_attacked) ~ "High"),
+                                                parents_understand_problems = case_when(grepl("Always", parents_understand_problems) ~ "Yes",
+                                                                                        grepl("Most of the time", parents_understand_problems) ~ "Yes",
+                                                                                        grepl("Sometimes", parents_understand_problems) ~ "No",
+                                                                                        grepl("Rarely", parents_understand_problems) ~ "No",
+                                                                                        grepl("Never", parents_understand_problems) ~ "No"),
+                                                other_students_kind_and_helpful = case_when(grepl("Always", other_students_kind_and_helpful) ~ "Yes",
+                                                                                        grepl("Most of the time", other_students_kind_and_helpful) ~ "Yes",
+                                                                                        grepl("Sometimes", other_students_kind_and_helpful) ~ "No",
+                                                                                        grepl("Rarely", other_students_kind_and_helpful) ~ "No",
+                                                                                        grepl("Never", other_students_kind_and_helpful) ~ "No"),
+                                                close_friends = case_when(grepl("0", close_friends) ~ "Low",
+                                                                          grepl("1", close_friends) ~ "Low",
+                                                                          grepl("2", close_friends) ~ "Low",
+                                                                          grepl("3 or more", close_friends) ~ "High"),
+                                                physical_attack_severity = factor(physical_attack_severity, levels = c("Low", "Medium", "High")),
+                                                parents_understand_problems = as.factor(parents_understand_problems),
+                                                close_friends = as.factor(close_friends),
+                                                were_obese = as.factor(were_obese),
+                                                most_of_the_time_or_always_felt_lonely = as.factor(most_of_the_time_or_always_felt_lonely),
+                                                sex = as.factor(sex),
+                                                other_students_kind_and_helpful = as.factor(other_students_kind_and_helpful)) 
+```
+
+```{r, include = FALSE}
+# create data set for classification tree (in section Question 3)
+completedata2 <- completedata %>%
+  mutate(other_students_kind_and_helpful = factor(other_students_kind_and_helpful, levels = c("Never", "Rarely", "Sometimes", "Most of the time", "Always")),
+         felt_lonely = factor(felt_lonely, levels = c("Never", "Rarely", "Sometimes", "Most of the time", "Always")),
+         parents_understand_problems = factor(parents_understand_problems, levels = c("Never", "Rarely", "Sometimes", "Most of the time", "Always")),
+         sex = case_when(sex == "Male" ~ "M",
+                   sex == "Female" ~ "F")) %>%
+        rename(bullied_at_school = bullied_on_school_property_in_past_12_months) %>%
+        mutate(bullied_at_school = ifelse(bullied_at_school == "No", 0, 1),
+        bullied_not_on_school_property_in_past_12_months = ifelse(bullied_not_on_school_property_in_past_12_months == "No", 0, 1),
+        cyber_bullied_in_past_12_months = ifelse(cyber_bullied_in_past_12_months == "No", 0, 1))
+
+classification_data <- completedata2 %>%
+  mutate(total = rowSums(completedata2[,c("bullied_not_on_school_property_in_past_12_months", "bullied_at_school", "cyber_bullied_in_past_12_months")]),
+         bullied = as.factor(ifelse(total > 0, "Yes", "No"))) %>%
+  dplyr::select(c(5:18, 20)) %>%
+  mutate(custom_age = as.factor(custom_age),
+         sex = as.factor(sex),
+         physically_attacked = as.factor(physically_attacked),
+         physical_fighting = as.factor(physical_fighting),
+         close_friends = as.factor(close_friends),
+         miss_school_no_permission = as.factor(miss_school_no_permission),
+         most_of_the_time_or_always_felt_lonely = as.factor(most_of_the_time_or_always_felt_lonely),
+         missed_classes_or_school_without_permission = as.factor(missed_classes_or_school_without_permission),
+         were_underweight = as.factor(were_underweight),
+         were_overweight = as.factor(were_overweight),
+         were_obese = as.factor(were_obese))
+```
+
+\newpage
+
+# Question 1: Which factors are associated with an adolescent being bullied?
+
+Since bullying varies in degree and type, yet is still so pervasive, we will carry out an initial analysis of the data set that gives a glimpse into the patterns between different predictive factors and whether or not an adolescent is bullied. Every case of attack is different, but through finding relationships among the variables, we will gain a clearer understanding of the conditions that are often adjacent to being bullied. Although we may not draw any causal judgments on the presence of bullying, this analysis hopefully raises awareness on the concurrent signs of an adolescent suffering from external mental and physical attacks.
+
+## Data Processing and Methods
+
+In order to determine which factors are associated with an adolescent being bullied, we will perform logistic regression analysis, which is used for predicting a binary variable with numerical or categorical data.
+
+The data set records our dependent variable, occurrence of bullying, in three ways: whether an adolescent was bullied on school property (`Bullied_on_school_property_in_past_12_months`), whether an adolescent was bullied not on school property (`Bullied_not_on_school_property_in_past_12_months`), and whether an adolescent was cyberbullied (`Cyber_bullied_in_past_12_months`). All three variables were originally recorded as "Yes" or "No," which we recoded to 1 or 0, respectively. We then combined the first two variables into one denoting whether or not an adolescent was bullied in person, and we left the third variable as a count of cyberbullying.
+
+* `isBulliedInPerson` - 1 if the adolescent was bullied on or off school property, 0 if the adolescent was neither bullied on school property nor off school property.
+
+* `isCyberbullied` - 1 if the adolescent was cyberbullied, 0 if the adolescent was not cyberbullied.
+
+All of the categorical variables in the dataset were recorded as strings containing ordinal values and words. For example, the categories of the number of days that an adolescent missed school without permission variable were "0 days," "1 to 2 days," "3 to 5 days," "6 to 9 days," and "10 or more." In order to make these data points usable as explanatory variables for logistic regression, we recoded them to clean out the words and assigned appropriate integer values to the groups. In the case of the days that an adolescent missed school without permission variable, "0 days" was sent to 0, "1 to 2 days" to 1.5, "3 to 5 days" to 4, "6 to 9 days" to 7.5, and "10 or more days" to 10. This allowed us to apply a simple but comprehensive understanding of the data when we later construct and interpret the final logistic regression model. These are the following predictors that we considered including in the final model:
+
+* `age` - Indicates an adolescent's age. Has integer values from 11 to 18
+
+* `close_friends` - Indicates the number of close friends an adolescent has. Has integer values 0, 1, 2, and 3 if an adolescent has 3 or more friends
+
+* `felt_lonely` - Indicates an adolescent's loneliness level. Has values 0, 1, 2, 3, and 4 for if an adolescent feels lonely never, rarely, sometimes, most of the time, or always, respectively
+
+* `miss_school_no_permission` - Indicates how often an adolescent misses school without permission over the past 12 months. Has values 0, 1.5, 4, 7.5, 10 for if an adolescent misses 0 days, 1 to 2 days, 3 to 5 days, 6 to 9 days, or 10 or more days, respectively
+
+* `other_students_kind_and_helpful` - Indicates how much an adolescent perceives other students at their school as kind and helpful. Has values 0, 1, 2, 3, and 4 for if an adolescent perceives other students at their school as kind and helpful never, rarely, sometimes, most of the time, or always, respectively
+
+* `parents_understand_problems` - Indicates how much an adolescent believes their parents understand their problems.  Has values 0, 1, 2, 3, and 4 for if an adolescent believes their parents understand their problems never, rarely, sometimes, most of the time, or always, respectively
+
+* `sex` - Indicates an adolescent's gender. Has values "Female" and "Male"
+
+* `were_obese` - Indicates an adolescent's obesity status. Has value "Yes" if the adolescent is obese, and "No" if the adolescent is not obese
+
+* `were_overweight` - Indicates an adolescent's overweight status. Has value "Yes" if the adolescent is overweight, and "No" if the adolescent is not overweight
+
+## Exploratory Data Analysis
+
+```{r fig.height = 10, fig.width=10, warning=FALSE}
+# in-person bullying
+gg <- theme(legend.position = "none") 
+
+p1 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, age), fill=isBulliedInPerson)) +
+  gg + xlab("Age") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p2 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, close_friends), fill=isBulliedInPerson)) +
+  gg + xlab("Close Friends") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p3 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, felt_lonely), fill=isBulliedInPerson)) +
+  gg + xlab("Felt Lonely") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p4 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, miss_school_no_permission),
+                  fill=isBulliedInPerson)) +
+  gg + xlab("Missed School Without Permission") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p5 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson,
+                              other_students_kind_and_helpful),
+                  fill=isBulliedInPerson)) +
+  gg + xlab("Other Students Kind and Helpful") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p6 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, parents_understand_problems),
+                  fill=isBulliedInPerson)) +
+  gg + xlab("Parents Understand Problems") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p7 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, sex), fill=isBulliedInPerson)) +
+  gg + xlab("Sex") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p8 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, were_obese), fill=isBulliedInPerson)) +
+  gg + xlab("Were Obese") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p9 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isBulliedInPerson, were_overweight), fill=isBulliedInPerson)) +
+  gg + xlab("Were Overweight") + ylab("Bullied in Person") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+grid.arrange(grobs=list(p1,p2,p3,p4,p5,p6,p7,p8,p9), ncol = 3, nrow=3, common.legend=T,
+             legend.position="bottom",
+             top="Associations Between Occurence of In-Person Bullying and Other Factors")
+```
+
+```{r fig.height = 10, fig.width=10, warning=FALSE}
+# cyberbullying
+gg <- theme(legend.position = "none") 
+
+p11 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, age), fill=isCyberbullied)) +
+  gg + xlab("Age") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p12 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, close_friends), fill=isCyberbullied)) +
+  gg + xlab("Close Friends") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p13 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, felt_lonely), fill=isCyberbullied)) +
+  gg + xlab("Felt Lonely") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p14 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, miss_school_no_permission), fill=isCyberbullied)) +
+  gg + xlab("Missed School Without Permission") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p15 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, other_students_kind_and_helpful), fill=isCyberbullied)) +
+  gg + xlab("Other Students Kind and Helpful") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p16 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, parents_understand_problems), fill=isCyberbullied)) +
+  gg + xlab("Parents Understand Problems") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p17 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, sex), fill=isCyberbullied)) +
+  gg + xlab("Sex") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p18 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, were_obese), fill=isCyberbullied)) +
+  gg + xlab("Were Obese") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+p19 <- ggplot(data = completedata_cleaned) +
+  geom_mosaic(aes(x = product(isCyberbullied, were_overweight), fill=isCyberbullied)) +
+  gg + xlab("Were Overweight") + ylab("Cyberbullied") + scale_fill_manual(values=c("#00BFC4", "#F8766D"))
+
+grid.arrange(grobs=list(p11,p12,p13,p14,p15,p16,p17,p18,p19), ncol = 3, nrow=3, common.legend=T,
+             legend.position="bottom",
+             top="Associations Between Occurence of Cyberbullying and Other Factors")
+```
+
+In the mosaic plots displayed below, we see that there are differences in in-person and cyberbullying occurrence frequencies for the nine variables we considered in the data set.
+
+* Older adolescents had just slightly lower proportions of experiencing in-person bullying and cyberbullying, compared to younger adolescents.
+
+* Adolescents with a greater number of close friends had lower proportions of experiencing in-person bullying and cyberbullying, compared to adolescents with a smaller number of close friends.
+
+*  Adolescents who felt lonely more had drastically higher proportions of experiencing in-person bullying and cyberbullying, compared to adolescents who felt lonely less.
+
+*  Adolescents who missed school without permission more had increasingly higher proportions of experiencing in-person bullying and cyberbullying, compared to adolescents who did not miss school without permission as much.
+
+* Adolescents who indicated that other students were more kind and helpful had lower proportions of experiencing in-person bullying and cyberbullying, compared to adolescents who indicated that other students were not as kind and helpful.
+
+* Adolescents whose parents did not understand their problems had lower proportions of experiencing in-person bullying and cyberbullying, compared to adolescents whose parents understood their problems more.
+
+* Male adolescents had lower proportions of experiencing in-person bullying and cyberbullying, compared to female adolescents.
+
+* Obese adolescents had roughly the same proportions of experiencing in-person bullying and cyberbullying, compared to non-obese adolescents.
+
+* Overweight adolescents had roughly the same proportions of experiencing in-person bullying and cyberbullying, compared to non-obese adolescents.
+
+## Model Fitting
+
+Since the conditions for logistic regression are satisfied, we proceed to fit a logistic regression model:
+
+``` {r}
+# fit model
+logmod_inperson <- glm(isBulliedInPerson ~ age + close_friends + felt_lonely +
+                         miss_school_no_permission +
+                         other_students_kind_and_helpful +
+                         parents_understand_problems + sex + were_obese +
+                         were_overweight,
+                       data = completedata_cleaned, family = binomial)
+
+# obtain model summary
+summary(logmod_inperson)
+```
+
+We observe that most of the coefficients are statistically significant for predicting the occurrence of in-person bullying, as their p-values are less than $\alpha=0.05$. Namely, an adolescent's age, level of loneliness, frequency of missing school without permission, perception of other students as kind and helpful, and level of understanding from parents are associated with being bullied in person. Four of the predictors yield insignificant coefficients (p-values greater than $\alpha=0.05$): the number of close friends an adolescent has, whether or not the adolescent is male, whether or not the adolescent is obese, and whether or not the adolescent is overweight.
+
+``` {r}
+# fit model
+logmod_extra1 <- glm(isBulliedInPerson ~ close_friends + sex + were_obese + were_overweight,
+                     data = completedata_cleaned, family = binomial)
+
+# obtain model summary
+summary(logmod_extra1)
+```
+
+Fitting a model for occurrence of in-person bullying with just the four variables that proved statistically insignificant above, we see that three of the four predictors are significant in a smaller model: the number of close friends an adolescent has, whether or not the adolescent is male, and whether or not the adolescent is overweight. This may be due to a few reasons: loss of degrees of freedom, multi-collinearity, and/or misspecified models, where regressing with fewer predictors increases the possibility that the small model suffers from omitted variable bias. We see in the next section of conditions that the model satisfies the multi-collinearity assumption. However, for the sake of parsimony, we proceed without these variables, with caution.
+
+``` {r}
+# fit model
+logmod_inperson_final <- glm(isBulliedInPerson ~ age + felt_lonely +
+                               miss_school_no_permission +
+                               other_students_kind_and_helpful +
+                               parents_understand_problems,
+                             data = completedata_cleaned, family = binomial)
+
+# obtain model summary
+summary(logmod_inperson_final)
+```
+
+``` {r}
+# fit model
+logmod_cyber <- glm(isCyberbullied ~ age + close_friends + felt_lonely +
+                      miss_school_no_permission +
+                      other_students_kind_and_helpful +
+                      parents_understand_problems + sex + were_obese +
+                      were_overweight,
+                    data = completedata_cleaned, family = binomial)
+
+# obtain model summary
+summary(logmod_cyber)
+```
+
+Again, we observe that most of the coefficients are significant. There is evidence that an adolescent's level of loneliness, frequency of missing school without permission, perception of other students as kind and helpful, level of understanding from parents, and an adolescent being male, are associated with being cyberbullied. On the other hand, an adolescent's age, the number of close friends an adolescent has, whether or not the adolescent is obese, and whether or not the adolescent is overweight, are not significant predictors of occurrence of cyberbullying.
+
+``` {r}
+# fit model
+logmod_extra2 <- glm(isCyberbullied ~ age + close_friends + were_obese +
+                       were_overweight,
+                     data = completedata_cleaned, family = binomial)
+
+# obtain model summary
+summary(logmod_extra2)
+```
+
+We perform one more logistic regression to determine whether or not the insignificant variables in the large model for predicting occurrence of cyberbullying are in fact significant on a smaller scale. According to the p-values, the more specific model yields significant coefficient values for the variables age and number of close friends, but the variables that capture whether or not an adolescent is obese and whether or not an adolescent is overweight are still insignificant. Thus, there is no evidence of significant associations between an adolescent's weight level and occurrence of cyberbullying and we remove these two predictors from the model from this point onward. Like the logistic regression model for in person bullying, we safely proceed with a simpler model that does not include any of these four predictors.
+
+``` {r, echo = FALSE}
+# fit model
+logmod_cyber_final <- glm(isCyberbullied ~ felt_lonely + miss_school_no_permission + other_students_kind_and_helpful + parents_understand_problems + sex, data = completedata_cleaned, family = binomial)
+
+# obtain model summary
+summary(logmod_cyber_final)
+```
+
+```{r, echo = TRUE, results = FALSE, warning = FALSE}
+# store summaries in table
+(clogmod1 <- coef(summary(logmod_inperson_final)))
+(clogmod2 <- coef(summary(logmod_cyber_final)))
+```
+
+``` {r}
+# logistic regression with lasso
+full_data <- completedata_cleaned %>%
+ dplyr::relocate(isBulliedInPerson)
+
+x_data <- model.matrix(isBulliedInPerson ~ ., full_data)[,-1]
+y_data <- full_data %>%
+ dplyr::select(isBulliedInPerson) %>%
+ unlist() %>%
+ as.numeric()
+lasso_model <- cv.glmnet(x_data, y_data, family = "binomial", alpha = 1)
+
+plot(lasso_model)
+```
+
+``` {r}
+coef(lasso_model, lasso_model$lambda.1se)
+```
+
+In the case that none of our predictors exhibit significant associations with our response variables, occurrence of in-person bullying and cyberbullying, we use glmnet, a package that fits a generalized logistic model to our data via penalized maximum likelihood. The package includes methods for prediction and plotting, and functions for cross-validation. By producing a relaxed lasso regression model between all of the independent variables and the dependent ones, we obtain a more lenient regression standard. The coefficients from this analysis are $\lambda$ values, which are hyperparameters that capture many layers of information between and among the variables. The best lambda minimizes error in prediction, and we see from the coefficient values that, in fact, none of our predictor variables are significant in the relaxed lasso regression. Thus, we decided to proceed with the more stringent method of the above standard logistic regression.
+
+## Checking Model Assumptions
+
+1. The dependent variable is binary.
+
+Our dependent variables, occurrence of bullying in person and occurrence of cyberbullying, are both binary, so this assumption is satisfied.
+
+2. The observations are independent of each other.
+
+The observations in the data set were independently collected and did not come from repeated measurements or matched data. Thus, we have independent observations.
+
+3. There is no multi-collinearity among the independent variables.
+
+``` {r}
+vif(logmod_inperson_final)
+vif(logmod_cyber_final)
+```
+
+The VIF score for all of the independent variables is around 1. Since they are all less than 5, the independent variables are not too highly correlated with each other and we do not have issues of multi-collinearity.
+
+4. The independent variables and log odds are linear.
+
+```{r warning=FALSE}
+emplogitplot1(isBulliedInPerson ~ felt_lonely, data = completedata_cleaned)
+```
+
+We see from the plot of the logit function vs. one of our predictor variables, level of loneliness, that there is a linear pattern between the two factors. This trend persists across all of the significant predictors, thus we have that the logit transformation of probabilities is a linear function of the predictors.
+
+5. The sample size is large.
+
+Since there are more than 10 observations of the least frequent outcome for each independent variable in our model, the sample size is sufficiently large.
+
+## Model Interpretation
+
+```{r, echo = TRUE, results = FALSE}
+# obtain odds ratios for in-person bullying
+exp(coef(logmod_inperson_final))
+```
+
+* Age: For every level increase in age, the odds of an adolescent being more likely to be bullied in person becomes smaller by 0.94 times, holding constant all other variables.
+
+* Felt Lonely: For every level increase in how lonely an adolescent feels, the odds of being more likely to be bullied in person becomes larger by 1.51 times, holding constant all other variables.
+
+* Missed School Without Permission: For every level increase in frequency of an adolescent missing school without permission, the odds of being more likely to be bullied in person becomes larger by 1.05 times, holding constant all other variables.
+
+* Other Students' Kindness and Helpfulness: For every level increase in how much an adolescent finds other students to be kind and helpful, the odds of being more likely to be bullied in person becomes smaller by 0.85 times, holding constant all other variables.
+
+* Parents Understanding of Problems: For every level increase in how much an adolescent feels their parents understand their problems, the odds of being more likely to be bullied in person becomes smaller by 0.98 times, holding constant all other variables.
+
+```{r, echo = TRUE, results = FALSE}
+# obtain odds ratios for cyberbullying
+exp(coef(logmod_cyber_final))
+```
+
+* Felt Lonely: For every level increase in how lonely an adolescent feels, the odds of being more likely to be cyberbullied becomes larger by 1.48 times, holding constant all other variables.
+
+* Missed School Without Permission: For every level increase in frequency of an adolescent missing school without permission, the odds of being more likely to be cyberbullied becomes larger by 1.06 times, holding constant all other variables.
+
+* Other Students' Kindness and Helpfulness: For every level increase in how much an adolescent finds other students to be kind and helpful, the odds of being more likely to be cyberbullied becomes smaller by 0.91 times, holding constant all other variables.
+
+* Parents Understanding of Problems: For every level increase in how much an adolescent feels their parents understand their problems, the odds of being more likely to be cyberbullied becomes smaller by 0.97 times, holding constant all other variables.
+
+* Sex: For male adolescents, the odds of being more likely to be cyberbullied is 0.62 times that of female adolescents, holding constant all other variables.
+
+## Model Diagnostics
+
+```{r}
+# Pseudo R2 for in-person bullying
+DescTools::PseudoR2(
+  logmod_inperson_final,
+  which = c("McFadden"))
+
+# Pseudo R2 for cyberbullying
+DescTools::PseudoR2(
+  logmod_cyber_final,
+  which = c("McFadden"))
+```
+
+Since logistical regression modeling is not linear, we may not use the coefficient of determination, R-squared as a measure for the model's goodness of fit. Instead, we implement a pseudo R-squared method for our logistic regression model. A McFadden's pseudo R-squared value between 0.2 and 0.4 indicates excellent model fit. However, based on the McFadden's pseudo R-squared value of approximately 0.06 for both our in-person bullying and cyberbullying models, we conclude that our model has weak predictive capability.
+
+## Key Takeaways
+
+1. The general regression model to predict physical attack severity levels was valid. After removing a few predictors, all of the coefficients were statistically significant.
+
+2. There are significant associations between an adolescent experiencing in-person bullying or cyberbullying, and being younger, feeling more lonely, missing school without permission more frequently, finding other students to be kind and helpful less, and feeling their parents understand them less.
+
+\newpage
+# Question 2: Which factors specifically affect the severity of physical attacks in bullying?
+
+Bullying often has many different dimensions, such as isolation, rumor-spreading, and physical attacks. The data set unfortunately did not contain many variables measuring the specific aspects of bullying. Instead, the data set includes a variable measuring the number of physical attacks, so we wanted to investigate which factors affect the severity of physical attacks in bullying. 
+
+Beyond the injuries from physical attacks, the ongoing stress and trauma can also lead to other physical problems like sleep disorders, headaches, and chronic pain. Additionally, physical attacks also negatively affect adolescents' mental health, biological stress system, and academics. Thus, it is critical to better understand which factors are related to not just bullying but physical attacks specifically.
+
+## Data Processing and Methods
+
+In order to predict the severity of physical attacks in bullying, we will use an ordinal logistic regression model, which is used for predicting an ordinal variable with more than two levels. Ordinal variables contain categories in a specific order. 
+
+The dependent variable is the severity of physical attacks. The physical attack variable (`physically_attacked`) was originally recorded in different categories based on frequency (0 times, 1 times, 2 to 3 times, etc.). However, we recoded the variable to denote different severity levels (low, medium, or high) based on the frequency.
+
+* `physical_attack_severity` - Recoded to have values "Low" if the adolescent was physically attacked 0 or 1 times, "Medium" if the adolescent was physically attacked  2 to 7 times, or "High" if the adolescent was physically attacked 8 or more times. 
+
+Additionally, categorical variables with more than two levels were recoded to have only two levels. This was so the results would be easier to interpret in the final ordinal logistic regression model. These are the following predictors that we considered including in the final model because their levels' proportions differed based on the physical attack severity levels in mosaic plots (shown below in EDA section):
+
+* `were_obese` - Has values "Yes" or "No"
+
+* `most_of_the_time_or_always_felt_lonely` - Has values "Yes" or "No"
+
+* `sex` - Has values "Male" or "Female"
+
+* `other_students_kind_and_helpful` - Recoded to have values "Yes" if adolescents indicate that other students are kind and helpful always or most of the time, or "No" if adolescents indicate other students are kind and helpful sometimes, rarely, or never
+
+* `parents_understand_problems` - Recoded to have values "Yes" if adolescents indicate that parents understand their problems always or most of the time, or "No" if adolescents indicate that parents understand their problems sometimes, rarely, or never
+
+* `close_friends` - Recoded to have values "Low" if an adolescent has 0, 1, or 2 close friends, and "High" if an adolescent has 3 or more friends
+
+## Exploratory Data Analysis
+
+In the mosaic plots displayed below, we can see that there are differences in physical attack severity levels for the six variables described in the previous section. 
+
+* Obese adolescents had higher proportions of experiencing medium or high levels of physical attacks, compared to non-obese adolescents.
+
+*  Adolescents who felt lonely most of the time or always had higher proportions of experiencing medium or high levels of physical attacks, compared to adolescents who did not feel lonely most of the time or always.
+
+* Male adolescents had higher proportions of experiencing medium or high levels of physical attacks, compared to female adolescents.
+
+* Adolescents who indicated that other students were not kind and helpful had higher proportions of experiencing medium or high levels of physical attacks, compared to adolescents who indicated that other students were kind and helpful.
+
+* Adolescents whose parents did not understand their problems had higher proportions of experiencing medium or high levels of physical attacks, compared to adolescents whose parents understood their problems.
+
+* Adolescents with a smaller number of close friends had higher proportions of experiencing medium or high levels of physical attacks, compared to adolescents with a larger number of close friends.
+
+```{r fig.height = 10, fig.width=10, warning=FALSE}
+gg <- theme(legend.position = "none") 
+
+p1 <- ggplot(data = physical_attack_data) +
+  geom_mosaic(aes(x = product(physical_attack_severity, were_obese), 
+                  fill=physical_attack_severity)) +
+  gg + xlab("Were Obese") + ylab("Physical Attack Severity")
+
+p2 <- ggplot(data = physical_attack_data) +
+  geom_mosaic(aes(x = product(physical_attack_severity, most_of_the_time_or_always_felt_lonely), 
+                  fill=physical_attack_severity)) +
+  gg + xlab("Most of the Time or Always Felt Lonely") + ylab("Physical Attack Severity")
+
+p3 <- ggplot(data = physical_attack_data) +
+  geom_mosaic(aes(x = product(physical_attack_severity, sex), 
+                  fill=physical_attack_severity)) +
+  gg + xlab("Sex") + ylab("Physical Attack Severity")
+
+p4 <- ggplot(data = physical_attack_data) +
+  geom_mosaic(aes(x = product(physical_attack_severity, other_students_kind_and_helpful), 
+                  fill=physical_attack_severity)) +
+  gg + xlab("Other Students Kind and Helpful") + ylab("Physical Attack Severity")
+
+p5 <- ggplot(data = physical_attack_data) +
+  geom_mosaic(aes(x = product(physical_attack_severity, parents_understand_problems), 
+                  fill=physical_attack_severity)) +
+  gg + xlab("Parents Understand Problems") + ylab("Physical Attack Severity")
+
+p6 <- ggplot(data = physical_attack_data) +
+  geom_mosaic(aes(x = product(physical_attack_severity, close_friends), 
+                  fill=physical_attack_severity)) +
+  gg + xlab("Close Friends") + ylab("Physical Attack Severity")
+
+grid.arrange(grobs=list(p1,p2,p3,p4,p5,p6), ncol = 2, nrow=3, common.legend=T,
+legend.position="bottom", top="Associations Between Physical Attack Severity Levels 
+                               and Other Factors")
+```
+
+## Model Fitting
+
+Before fitting an ordinal logistic regression model, one assumption for the model that needs to be met is the proportional odds assumption. The assumption states that the coefficients that describe the relationship between "Low" physical attacks and "Medium" and "High" physical attacks are the same as those that describe the relationship between "Medium" and "High" physical attacks. Thus, out of the predictors we were considering based on the mosaic plots, we first examined which variables violate the proportional odds assumption by running a nominal test on the ordinal regression model. 
+
+```{r}
+model <- clm(as.factor(physical_attack_severity) ~ were_obese + 
+               most_of_the_time_or_always_felt_lonely + sex + 
+               other_students_kind_and_helpful + parents_understand_problems + 
+               close_friends, data = physical_attack_data)
+nominal_test(model)
+```
+
+A low p-value in the nominal test indicates that the coefficient does not satisfy the proportional odds assumption. From the nominal test results, we see that the variables `were_obese` and `most_of_the_time_or_always_felt_lonely` have p-values less than 0.05, which means that they violate the proportional odds assumption. Thus, they will be excluded in the final ordinal logistic regression model.
+
+We then fit the final ordinal logistic regression model:
+
+```{r}
+# fit model
+m <- polr(as.factor(physical_attack_severity) ~ sex + other_students_kind_and_helpful + 
+            parents_understand_problems + close_friends, data = physical_attack_data, 
+            Hess = TRUE)
+```
+
+```{r, echo = TRUE, results = FALSE, warning = FALSE}
+# store summary in table
+(ctable <- coef(summary(m)))
+```
+
+```{r}
+# obtain p-values
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+
+# combined table with summary and p-values
+(ctable <- cbind(ctable, "p value" = p))
+```
+
+The regression output "Coefficients" table includes the values of each coefficient, standard errors, and t-values, which are the ratios of the coefficients to their standard error, and p-values. We observe that all of the coefficients are statistically significant, since their p-values are less than 0.05.
+
+The intercepts table contains estimates for the two intercepts. The intercepts show where the latent or underlying variable is cut to make the three groups (Low, Medium, High) we observe in the physical attacks data. However, these intercepts are generally not used in the interpretation of results.
+
+Lastly, the residual deviance and AIC values are presented at the bottom of the table. Residual deviance is a measure of how well the dependent variable is predicted with the model with only an intercept. AIC is a measure used to estimate prediction error and compare different regression models. 
+
+## Model Interpretation
+
+The coefficients in the output table are difficult to interpret because they are scaled in terms of logs. To understand them, it is easier to convert the coefficients into odds ratios. Thus, we calculated the odds ratios and their confidence intervals by exponentiating the estimates and their confidence intervals. 
+
+```{r, echo = TRUE, results = FALSE, warning = FALSE}
+# obtain confidence intervals
+(ci <- confint(m))
+```
+
+```{r, echo = TRUE, results = FALSE}
+## obtain odds ratios
+exp(coef(m))
+```
+
+```{r}
+## combine OR and CI into one table
+exp(cbind(OR = coef(m), ci))
+```
+
+The odds ratios can be interpreted as follows:
+
+* Sex: For male adolescents, the odds of being more likely to be physically attacked is 1.42 times that of female adolescents, holding constant all other variables.
+
+* Other Students' Kindness and Helpfulness: For students who identified other students as not being kind and helpful, the odds of being more likely to be physically attacked is 1.43 times that of students who identified other students as being kind and helpful, holding constant all other variables.
+
+* Parents Understanding of Problems: For students whose parents do not understand their problems, the odds of being more likely to be physically attacked is 1.83 times that of students whose parents do understand their problems, holding constant all other variables.
+
+* Close Friends: For students who do not have many close friends, the odds of being more likely to be physically attacked is 1.29 times that of students who have many close friends, holding constant all other variables.
+
+## Checking Model Assumptions
+
+1. The dependent variable is ordered. 
+
+This assumption is met because the dependent variable, `Physical_attack_severity`, is ordered, as it goes from low to medium to high.
+
+2. One or more of the independent variables are either continuous, categorical, or ordinal.
+
+This assumption is met because the independent variables are all categorical or ordinal.
+
+3. There is no multi-collinearity amongst the variables.
+
+```{r}
+vif(m)
+```
+
+The VIF score for all of the independent variables is around 1. The general rule of thumb for the VIF test is that if the VIF value is greater than 5, there is multi-collinearity. However, since none of the VIF scores are greater than 5, there are no multi-collinearity issues in the model and the multi-collinearity assumption is met. 
+
+4. The model meets the proportional odds assumption.
+
+```{r}
+brant(m)
+```
+
+The Brant Test is used for testing whether an ordinal logistic regression model violates the proportional odds assumption or not. A low p-value in the Brant test indicates that the coefficient does not satisfy the proportional odds assumption. However, since all of the coefficients for the predictors are much greater than 0.05, this means that they satisfy the proportional odds assumption. The output also includes an Omnibus variable that stands for the whole model; since its p-value is also much greater than 0.05, this further confirms that the model is valid and the proportional odds assumption is not violated. 
+
+## Model Diagnostics
+
+```{r}
+# pseudo R2
+DescTools::PseudoR2(
+  m, which = c("McFadden"))
+```
+
+Like the previous section of logistic regression analysis, we utilized a pseudo R-squared method to obtain a measure for the model's goodness of fit, or how well the observed data corresponds to the model. Based on the low McFadden's pseudo R-squared value of 0.02 for our model, we conclude that our model has weak predictive capability.
+
+## Key Takeaways
+
+1. The ordinal regression model to predict physical attack severity levels was valid and met all assumptions. All of the model coefficients were statistically significant. However, it has weak predictive capability, based on its pseudo R-square value.
+
+2. According to the model output, adolescents who are male, have indicated that other students are not kind and helpful, have parents who do not understand their problems, or have a low number of close friends, are more likely to be physically attacked in bullying. 
+
+\newpage
+# Question 3: Classification Analysis: Can we predict being bullied by pattern recognition based on various predictors?
+
+In Q1 and Q2, we found factors associated with the severity of physical attacks in bullying and factors associated with an adolescent being bullied. Regression analysis aims to model and understand the relationship between the response variable and predictors. On the other hand, classification analysis focuses on predicting the class in which the observation belongs to. In this case, we are interested in predicting whether each student was bullied or not, based on patterns or characteristics observed in the data. The goal is to develop a classification model that not only can accurately predict whether a student was bullied or not based on our dataset, but also for novel datasets. 
+
+## Data Processing and Methods
+
+Using the wrangled data set from the ordinal logistic regression in question 2, we added a new variable, `bullied`, that is essentially a variable that represents whether an individual was bullied, in any form. 
+
+There are three variables that deal with bullying: `bullied_on_school_property_in_past_12_months`, `bullied_not_on_school_property_in_past_12_months`, and `cyber_bullied_in_past_12_months`. The response variable of interest, `bullied`, is coded `Yes` if at least one of the bullying variables has a value of `Yes`. Otherwise, `bullied` is coded to be `No`. For this analysis, we are focused on the patterns observed in the data that can help correctly categorize students based on whether or not they were bullied in general or not.
+
+## Exploratory Data Analysis
+
+In order to deduce whether it would be beneficial to perform classification analysis, we created some mosaic plots to see whether the levels in our data set's variables differ depending on bullying status. 
+
+```{r}
+# mosaic plot
+mosaic(~ felt_lonely + sex + bullied, data = classification_data, highlighting = "bullied", 
+       highlighting_fill = c("#F8766D", "#619CFF"), direction = c("v", "v", "h"), 
+       gp_varnames = gpar(fontsize = 11, fontface = 1.5),
+       gp_labels = gpar(fontsize = 6.5), main = "Mosaic Plot of Bullied by Feeling Lonely") 
+```
+
+This is a mosaic plot that displays the proportion of whether you are bullied or not based on the degree to how lonely you are (never, rarely, sometimes, most of the times, and always), faceted by sex. As the degree of feeling lonely increases (from never to always), the proportions of males and females that are bullied have a general increase in trend. However, the trend is more prominent in females.
+
+Since we notice some differences in the proportions of students being bullied or not bullied, based on different categories of loneliness and sex, we know that there are patterns in the data that can help predict bullying status. Thus, it would be beneficial to perform classification analysis. 
+
+```{r}
+# bar chart
+ggplot(data = classification_data, aes(x = bullied, fill = bullied)) + 
+  geom_bar() + 
+  labs(x = "Bullied or Not", y = "Count",title = "Distribution of Being Bullied") +
+  theme(legend.position = "none")
+```
+
+```{r}
+# tally of bullied
+classification_data$bullied %>%
+  tally()
+19553/32938
+13385/32938
+```
+
+We then created a bar chart and tally chart to investigate the distribution of the response variable for whether a student has been bullied or not. From the bar chart, we see that there are more students who have not been bullied than students who were bullied. Looking at the tally chart, 59.4\% of students have not been bullied while 40.6\% of students have been bullied. Overall though, there is not a huge class imbalance (where one category is much greater than the other). Thus, our classification model will not be as biased.
+
+```{r}
+# misclassification error rate
+n <- nrow(classification_data)
+(n-19553)/n
+```
+
+Lastly, before creating the classification model, we calculated the misclassification rate. This is the error rate if the model classified every student as not bullied (the majority class). The misclassification rate is 40.6\%, which is the baseline error rate that we want to improve upon. 
+
+## Creating the Classification Tree
+
+There are many different models used for classification analysis. However, we decided to use a classification tree model, since the output is visual and can be better understood by different audiences.
+
+```{r}
+# creating training and test sets
+set.seed(320)
+n <- nrow(classification_data)
+train_index <- sample(1:n, 0.75*n)
+test_index <- setdiff(1:n, train_index)
+
+train <- classification_data[train_index, ]
+test <- classification_data[test_index, ]
+```
+
+We split 75\% of the bullied data set to be a training set used to train the classification model. The training set is used to build and optimize the model's parameters and learn underlying patterns/relationships between the features and class labels. The purpose of the training set is for the model to be exposed to our data and learn the patterns and boundaries that will help make accurate predictions on unseen data.
+
+The remaining 25\% of the bullied data set is the test set, which is the unseen data. The test set is used to evaluate the performance of the trained classification model. It is an independent data set that assesses how well the classification model generalizes to unseen data. 
+
+```{r}
+# creating classification tree
+bullied.tree <- rpart(bullied ~ ., data = train, method = "class")
+#print(bullied.tree)
+rpart.plot(bullied.tree, cex = 0.75)
+printcp(bullied.tree)
+```
+
+In order to use the tree to make a prediction about bullying status for any adolescent, follow the guidelines: 
+
+1. For each node, if the condition is true for an adolescent, you continue down the tree by going left. If the condition is false, you continue down the tree by going right. 
+
+2. After following the tree all the way to one of the end nodes, you are left with either "Yes" or "No" for whether the adolescent is bullied or not.
+
+* Let's run through an example with a hypothetical adolescent:
+  * 1st node: `never or rarely felt lonely` = yes, so go left (&larr;)
+  * 2nd node: `never physically attacked` = yes, so go left (&larr;)
+  * 3rd node: `bullied` = No
+
+Takeaway: An individual who never or rarely felt lonely and was never physically attacked would be predicted as **hasn't been bullied**.
+
+* Another example:
+  * 1st node: `never or rarely felt lonely` = no, so go right (&rarr;)
+  * 2nd node: `never physically attacked` = yes, so go left (&larr;)
+  * 3rd node: `sometimes felt lonely` = no, so go right (&rarr;)
+  * 4th node: `bullied` = Yes
+
+Takeaway: An individual who was not physically attacked but felt lonely most of the times or always would be predicted as **has been bullied**. 
+
+## Model Diagnostics
+
+```{r}
+# apparent error rate - training set
+bulliedtreepred <- predict(bullied.tree, newdata = train, type = "class")
+tally(bulliedtreepred ~ bullied, data = train)
+(2708+5671)/24703 # from confusion matrix
+0.84127*9960/24703 # from the output, should agree
+
+apparent_error <- 0.84127*9960/24703
+```
+
+The apparent error rate is 33.9\%. This error rate is found from the classification model trying to predict the training set, so it is usually more generous than the true error rate.
+
+```{r}
+# estimated true error rate - test set
+bulliedtreepred2 <- predict(bullied.tree, newdata = test, type = "class")
+tally(bulliedtreepred2 ~ bullied, data = test)
+(826+1956)/8235 # from confusion matrix
+0.85065*9960/24703 # from the output
+
+TER <- 0.84669*9960/24703
+TER
+```
+
+The estimated true error rate is 34.1\%. This error rate, which is found from the test set, is a 6.5\% improvement from the misclassification error rate. Therefore our classification tree does a better job in predicting whether an adolescent is bullied or not bullied than if the model were just to guess that everyone belongs in the majority class. 
+
+```{r, warning = FALSE, message = FALSE}
+# ROC and auc
+predict_prob <- predict(bullied.tree, test, type = 'prob')
+auc <- auc(test$bullied, predict_prob[,2])
+plot(roc(test$bullied, predict_prob[,2]))
+auc
+```
+
+An ROC curve (receiver operating characteristic curve) is a graph that shows the performance of a classification model. It shows the trade-off between the true positive rate and false positive rate as the classification threshold is varied. An ideal classifier that perfectly separates the two classes (bullied or not bullied) would have an ROC curve that passes through the top-left corner of the plot, which indicates high true positive rate and low false positive rate. The auc (area under the curve) is a measure of the ROC curve. It quantifies the model's overall performance by calculating the area under the curve. It ranges from 0 to 1, where 1 represents a perfect classifier and 0.5 corresponds to a random classifier. 
+
+The ROC curve does not exhibit as good of a curvature we would like because the curve reaches a sensitivity of 0.6-0.8 and specificity of around 0.4. The moderate curve indicates that the performance can be improved upon but not that inaccurate. The area under the curve is 0.6835, which is on the cusp of poor discrimination and acceptable discrimination.
+
+## Key Takeaways
+
+* The predictive model we generated through a decision tree for binary response variable includes the variables relating to physical attacks and loneliness. 
+
+* There are specific levels of these categorical variables that are associated with being bullied. Any combination of being physically attacked and felt lonely most of the times or always are associated with the student being bullied.
+
+* The estimated TER (approximated true error rate) of the tree is 34.1\%. This is the proportion of mistakes made on the testing set, which is the portion of the bullied data set that the model was not made from, making it "new" data for the model performance to be calculated. This is a 6.5\% improvement in error rate than if we were to just guess that all students have gotten bullied. 
+
+* The classification model has acceptable discrimination (auc $\approx$ 0.7), which refers to the level of accuracy or predictive performance that is considered satisfactory for this problem of bullying. This implies that our model is able to sufficiently distinguish between different classes/categories with a reasonable degree of accuracy.
+
+\newpage
+# Conclusion
+
+Through our statistical analyses, we were able to answer three questions about bullying-related factors in adolescents. Based on the logistic regression models, we found that an adolescent's age, level of loneliness, frequency of missing school without permission, perception of other students as kind and helpful, level of understanding from parents, and whether or not the adolescent is overweight are significantly associated with being bullied in person. Additionally, an adolescent's level of loneliness, frequency of missing school without permission, perception of other students as kind and helpful, level of understanding from parents, and an adolescent being male are significantly associated with being cyberbullied. From our ordinal logistic regression model, we found that adolescents who are male, have indicated that other students are not kind and helpful, have parents who do not understand their problems, or have a low number of close friends, are more likely to be physically attacked in bullying. Lastly, we built a classification model with an accuracy rate of 65.8%, which can predict whether an adolescent is bullied or not using information about physical attacks and loneliness. 
+
+One limitation of our analyses is that the data was only collected from adolescents from Argentina. Thus, our models and results may not be generalizable to adolescents from other countries and cultures. Another limitation is that the logistic regression model and ordinal logistic regression model have low predictive power, based on McFadden's pseudo R-squared values. 
+
+Based on our results, we have a few recommendations for schools and parents that may prevent or reduce bullying in adolescents:
+
+1. Schools should provide more social support and community building for adolescents to reduce loneliness and increase peer bonding. This can be in the form of peer support groups that meet at a fixed time, more structure for extracurricular activities and clubs that adolescents can join, and having student ambassadors that organize social events.
+2. Parents should seek to spend more time with their children and work to understand their problems, in order to be a support system their adolescent can turn to.
+3. Schools should work to foster an inclusive environment in classrooms, so all students, regardless of weight or appearance, feel safe and accepted. This can be achieved through having community guidelines in classrooms, having teachers model inclusive language and behaviors, and providing accessible mental health and counseling resources. 
+
+
+
+
+
+
+
