@@ -78,16 +78,6 @@ Once you identify appropriate visuals, you need to save them in a format that ca
 
 Below are two examples of how visuals can be included in a .Rmd. Part of the purpose of this assignment is so that you learn how to add images to .Rmds looking ahead to the final paper. The image file should be in the current directory (see the output of "getwd()"). See http://rmarkdown.rstudio.com/authoring_basics.html for more details. DELETE these examples before submission. 
 
- 
-![Visual of Tukey Transform Suggestions - Method 1](tukey_bulge.png)
-
-\begin{figure}[htbp] 
-\centering 
-\includegraphics[width=4in]{tukey_bulge.png} 
-\caption{Visual of Tukey Transform Suggestions - Method 2}
-\end{figure} 
-
-
 ## Vis 1 - Compelling
 
 ```{r, include = FALSE}
@@ -98,6 +88,14 @@ Below are two examples of how visuals can be included in a .Rmd. Part of the pur
 #Was this from JSTOR or Google Scholar?
 ```
 
+![Visual](hw1_goodvis.png)
+
+Guisan, A., Theurillat, J.-P., &amp; Kienast, F. (1998). Predicting the potential distribution of plant species in an Alpine environment. Journal of Vegetation Science, 9(1), 65–74. https://doi.org/10.2307/3237224 
+
+Figure 4
+
+This visualization from JSTOR shows the potential habitat distribution of a plant called Carex curvula, with map (a) being the real observations, map (b) being generated from a binomial logistic model, and map (c) being generated from an ordinal logistic model. I think this is a good visualization, because it contains clear and informative legends, and the features of the visualization are both varied and consistent, as all three maps for the predicted plant distribution are different in method but reflect the same strip of habitation.
+
 ## Vis 2 - Suboptimal
 
 ```{r, include = FALSE}
@@ -107,6 +105,14 @@ Below are two examples of how visuals can be included in a .Rmd. Part of the pur
 
 #Was this from JSTOR or Google Scholar?
 ```
+
+![Visual](hw1_badvis.jpeg)
+
+Dam, J. S., Dalgaard, T., Fabricius, P. E., &amp; Andersson-Engels, S. (2000). Multiple polynomial regression method for determination of biomedical optical properties from integrating sphere measurements. Applied Optics, 39(7), 1202. https://doi.org/10.1364/ao.39.001202
+
+Fig. 4
+
+Although it's interesting to see the contoured shape of the plot, I think this visualization from Google Scholar contains too many grid lines and unnecessary labeling. Also, the differing opacities of the point types make the faint ones seem irrelevant on the plot. I also wonder if it is necessary to show those faint ones, since the bold circle and triangles seem to show a pattern across the plot, but the faint points are evenly distributed all around. This could have just been mentioned in the caption and would have cleared up the plot.
 
 \newpage
 
