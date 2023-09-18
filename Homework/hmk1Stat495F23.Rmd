@@ -134,13 +134,24 @@ SOLUTION:
 # Do you remember how to add powers to a regression? You can also use mutate. 
 # Be sure you actually get a cubic regression! 
 # The model must show the appropriate terms.
-```
 
+cub_mod <- lm(tot ~ age + I(age^2) + I(age^3), data = kidney)
+msummary(cub_mod)
+
+age <- c(20, 30, 40, 50, 60, 70, 80)
+age_vals <- data.frame(age)
+
+aug_data <- augment(cub_mod, kidney, age_vals, se_fit = TRUE)
+
+# print(aug_data[, c("age", ".fitted", ".se.fit.")])
+knitr::kable(aug_data, caption = "Fitted Cubic Regression of Kidney Data")
+```
 
 > (b) How do the results compare with those in Table 1.1?
 
 SOLUTION:
 
+From ages 20 to 60, the fitted cubic model predicts tot values closer to 0 than the linear regression model does. For ages 70 and 80, the cubic regression predicts tot values of larger magnitude. The standard errors of the cubic model are closest to the linear regression fitted values than the other models, but are larger than the linear regression SE values.
 
 \newpage
 
@@ -169,27 +180,57 @@ We want to see if there is a significant difference in mean gene expression for 
 
 SOLUTION:
 
+```{r}
+mean_all <- 0.752479
+mean_aml <- 0.949973
+```
+
 
 > (b) Perform 1000 nonparametric bootstrap replications for the mean of ALL for gene 136. Describe the distribution of the resulting means. You can perform the bootstrap in any way you see fit (the functions do and resample might prove useful).
 
 SOLUTION:
 
+```{r}
+set.seed(495)
+bootstrap_all <- do(1000) * mean(~ gene136, data = resample(filter(leukemia, type == "ALL"), replace = TRUE))
+
+gf_dens(~ mean, data = bootstrap_all) %>%
+  gf_labs(title = "1000 Non-Parametric Bootstrap Replications for the Mean of ALL for Gene 136")
+
+favstats(~ mean, data = bootstrap_all)
+qdata(~ mean, c(0.025, 0.975), data = bootstrap_all)
+```
+
+The distribution of 1000 nonparametric bootstrap replications for the mean of ALL for gene 136 is unimodal and mostly symmetrically centered around 0.750237. The bootstrapped mean is very close to the mean for ALL from part (a), 0.752479.
 
 > (c) Repeat (b) for AML.
 
 SOLUTION:
 
+```{r}
+set.seed(495)
+bootstrap_aml <- do(1000) * mean(~ gene136, data = resample(filter(leukemia, type == "AML"), replace = TRUE))
+
+gf_dens(~ mean, data = bootstrap_aml) %>%
+  gf_labs(title = "1000 Non-Parametric Bootstrap Replications for the Mean of AML for Gene 136")
+
+favstats(~ mean, data = bootstrap_aml)
+qdata(~ mean, c(0.025, 0.975), data = bootstrap_aml)
+```
+
+The distribution of 1000 nonparametric bootstrap replications for the mean of AML for gene 136 is unimodal and slightly left-skewed, with mean centered around 0.94699 (median 0.946449 because skewness). The bootstrapped mean is also very close to the mean for AML from part (a), 0.949973.
 
 > (d) Suggest an inference. In other words, what do your results in (b) and (c) suggest about whether there is a difference in means for the ALL and AML groups for gene 136?
 
 SOLUTION:
 
-
+Based on my results in (b) and (c), specifically the two confidence intervals for the bootstrapped means, there is evidence of a difference in means for the ALL and AML groups for gene 136. The 95% CI for the ALL bootstrapped means is (0.680755, 0.830720), while that for the AML bootstrapped means is (0.853861, 1.044959). The two intervals not overlapping suggests that there is a difference between the means of the two groups.
 
 > (e) Brainstorm an alternative way to approach the problem via a randomization/permutation test. Describe what you would do in a way that someone else could code it up. (You do not need to actually code this up, but you can if you want to see what the result is.)
 
 SOLUTION:
 
+An alternative way to determine whether or not there is a difference between the means of the two groups is to conduct a t-test. By using the t.test() function with the data of the two gene 136 data groups inside, I would be able to determine the presence of a difference between the means, and how significant it is.
 
 \newpage
 
