@@ -1,0 +1,176 @@
+---
+title: "Homework 2 - Stat 495"
+author: "YourNameGoesHere"
+date: "Due Monday, Sept. 25th by midnight"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, include = FALSE}
+library(mosaic)
+library(tidyr)
+library(palmerpenguins)
+options(digits = 6)
+```
+
+# Practicing Academic Integrity
+
+If you worked with others or used resources outside of provided course material (anything besides our textbook(s), course materials in Moodle, R help menu) to complete this assignment, please acknowledge them below using a bulleted list. 
+
+<!-- ~~~~~~~~~~~~~~~~ YOU MAY BEGIN EDITING BELOW THIS LINE ~~~~~~~~~~~~~~~~ -->
+
+*I acknowledge the following individuals with whom I worked on this assignment:*
+
+Name(s) and corresponding problem(s)
+
+*
+
+*I used the following sources to help complete this assignment:*
+
+Source(s) and corresponding problem(s)
+
+* 
+
+\newpage
+
+
+```{r, include = FALSE}
+library(mosaic)
+options(digits = 6)
+```
+
+For this assignment, you may do some of the problems on paper if you like, then scan in your solutions and merge with the Integrity page as a cover sheet and any work you are leaving in the .Rmd. If you decide to type in your answers, you will need to use LaTeX to show your work for some problems. 
+
+Because you may merge files into a pdf to submit in any order, be sure to assign pages in Gradescope so I can find work for each problem!
+
+# PROBLEMS TO TURN IN: CASI 2.1, Add 1, Add 2, Add 3, CASI 5.3 (modified), Add 4
+
+## CASI 2.1 
+
+A coin with probability of heads $\theta$ is independently flipped $n$ times, after which $\theta$ is
+estimated by 
+
+\[
+\hat{\theta} = \frac{s+1}{n+2};
+\]
+
+with $s$ equal to the number of heads observed.  $\hat{\theta}$ will be referred to as the estimator below. 
+
+> (a) What are the bias and variance of the estimator?
+
+SOLUTION:
+
+> (b) How would you apply the plug-in principle to get a practical estimate of the standard error of the estimator?
+
+SOLUTION:
+
+\newpage
+
+## Additional 1
+
+Suppose you have a random sample of $n$ observations drawn from a Bernoulli distribution with parameter $\theta$. Further suppose that $\theta$ is unknown, but has a prior density of a Beta($\alpha$, $\beta$) distribution, with both $\alpha$ and $\beta$ greater than 0. 
+
+> part a: Find the posterior density for theta given the data. Be sure to fully specify/identify the posterior density in your solution.
+
+SOLUTION:
+
+> part b: Find the Bayesian estimator for theta (i.e. the posterior mean). 
+
+SOLUTION:
+
+\newpage
+
+## Additional 2
+
+Suppose $X_1 \dots X_n$ are iid from an Exponential distribution with parameter $\beta$, with pdf:
+
+\[
+f(x| \beta) = \frac{1}{\beta}exp^{-x/ \beta}, x>0, \beta>0,
+\]
+and 0, otherwise.
+
+> (a) Find the MLE for beta.
+
+SOLUTION:
+
+> (b) Verify the MLE is unbiased.
+
+SOLUTION:
+
+> (c) Find the Fisher information for a single observation.
+
+SOLUTION:
+
+> (d) Find the Cramer Rao lower bound on variance for unbiased estimators of beta.
+
+SOLUTION:
+
+
+\newpage
+
+## Additional 3
+
+In a few sentences and in your own words, explain what the Neyman-Pearson lemma tells us and why it is important/useful in the context of hypothesis testing.
+
+SOLUTION:
+
+
+\newpage
+
+## CASI 5.3 (modified)
+
+Draw a sample of 1000 bivariate normal vectors $x = (x_1, x_2)'$, with
+each variable having a mean of 0, a standard deviation of 1, and with a correlation between them of 0.5. Be sure your process is reproducible.
+
+Review the chapter 4 and 5 practice problems for assistance with code. 
+
+> (a) Plot your sample of data points.
+
+SOLUTION:
+
+> (b) Following equation 5.19, what should the theoretical distribution of $x_2 | x_1$ be here?
+
+SOLUTION:
+
+> (c) Regress $x_2$ on $x_1$ and numerically check equation 5.19.
+
+Hint: Reading the text will help you understand what two things to check in the regression output. 
+
+SOLUTION:
+
+\newpage
+
+## Additional 4
+
+Many parametric inference procedures rely on certain conditions being met in order for the procedures to be valid. In cases where the conditions are not met, nonparametric procedures can be employed. You have seen the bootstrap and permutation/randomization tests as examples of alternatives (much more exists in the field of nonparametric statistics). On Homework 1, you performed some analysis with the bootstrap, and thought through how to perform a permutation test on the gene136 data, which you later saw in the practice problems.
+
+How are these procedures adapted to other situations? 
+
+> (a) In a few sentences, describe how you would perform a permutation-based test to assess the overall significance of a multiple linear regression. If context would help, you can consider the following regression model:
+
+```{r}
+data(penguins)
+mymod <- lm(bill_length_mm ~ bill_depth_mm*species, data = penguins)
+msummary(mymod)
+```
+
+Note that there aren't necessarily problems with the parametric methods in this setting, but context can be helpful for thinking through the process. You don't need to implement the procedure, but feel free if it helps your description. 
+
+SOLUTION:
+
+
+> (b) Describe two ways that a bootstrap might be useful in a multiple linear regression model. Be sure that one way is tied to a specific model term, while the other is associated with the entire model. 
+
+Again, if context is useful, feel free to refer to the model fit above. There are many possible solutions here. As above, you don't need to implement the two ways, but feel free if it helps your description. 
+
+SOLUTION: 
+
+
