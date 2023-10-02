@@ -1,0 +1,185 @@
+---
+title: "Stat 495 - Chapter 16 - PreLasso Examples"
+author: "A.S. Wagaman"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+### Techniques for Choosing Predictors 
+
+```{r, include = FALSE}
+library(mosaic)
+library(leaps)
+library(broom)
+library(mosaicData)
+options(digits = 6)
+```
+
+Chapter 16 begins with a review of forward stepwise selection. Forward selection, backward elimination, and stepwise regression were covered in Stat 230, but we can review how to run these procedures in R. 
+
+The HELPrct data set contains 453 observations on 27 variables. The data is the data set on Health Evaluation and Linkage to Primary Care study results. The HELP study was a clinical trial for adult inpatients recruited from a detoxification unit. Patients with no primary care physician were randomized to receive a multidisciplinary assessment and a brief motivational intervention or usual care, with the goal of linking them to primary medical care.
+
+```{r}
+data(HELPrct)
+names(HELPrct)
+#help(HELPrct)
+str(HELPrct)
+HELPrct <- with(HELPrct, HELPrct[ !is.na(drugrisk), ])
+dim(HELPrct)
+```
+
+We eliminate the ONE data point with missing values. 
+
+Now, suppose we want to predict a baseline measure of depression (cesd) using other baseline variables including age, number of previous hospitalizations (d1), drug risk, average and maximum number of drinks in a day (last 30 days)(i1 and i2), inventory of drug use score (indtot), mental and physical component scores (mcs and pcs), perceived social support (pss_fr), and sex risk score. 
+
+Let's fit a model with all 10 predictors to start.
+
+```{r}
+modall <- lm(cesd ~ age + d1 + drugrisk + i1 + i2 + indtot +
+               mcs + pcs + pss_fr + sexrisk, data = HELPrct)
+msummary(modall)
+car::vif(modall)
+```
+
+What variables appear most significant in predicting cesd? How well does the model fit? Do we observe any issues with multicollinearity that might make interpreting coefficients difficult?
+
+Now, we want to try to use variable selection techniques to come up with a good set of predictors for predicting cesd. 
+
+At the top of this file, note we loaded a new library: *leaps*, which is needed for these functions. You should check that it is installed/loaded if trying to work with these commands.
+
+1. Best Subsets and Mallow's Cp Code
+
+First provide a full model (response ~ all possible explanatory predictors). Then we tell it to run using the best subsets method and plot the results. 
+
+```{r}
+best <- regsubsets(cesd ~ age + d1 + drugrisk + i1 + i2 + indtot +
+               mcs + pcs + pss_fr + sexrisk, data = HELPrct, nbest = 1)
+with(summary(best), data.frame(rsq, adjr2, cp, rss, outmat))
+```
+
+We can examine lots of properties about the best subsets solutions in the output above. Here, we want to examine the model with the minimum Cp value, which we can see is size 5. 
+
+We can then fit the best subset model, using only those variables marked with an asterisk (i.e. "True").
+
+```{r}
+Cpmod <- lm(cesd ~ i1 + mcs + pcs + pss_fr + sexrisk, data = HELPrct)
+msummary(Cpmod)
+```
+
+How does this solution compare to the model with all 10 predictors?
+
+If you wanted the AIC for the model, you could attain it with:
+
+```{r}
+AIC(Cpmod)
+```
+
+Remember that AIC is another criterion that could be used, like Cp, to pick models. What are other criteria to consider?
+
+2. Backward elimination
+
+Recall that backward elimination starts from the full model. The process is achieved in R as follows, with a simple summary table provided. Here, you can set the maximum size of subsets to examine with the nvmax option. The default is 8, which is fine for this example. If you have a very large set of predictors, you may need to adjust that value.  
+
+```{r}
+backward <- regsubsets(cesd ~ age + d1 + drugrisk + i1 + i2 + indtot +
+               mcs + pcs + pss_fr + sexrisk, data = HELPrct, method = "backward", nbest = 1)
+with(summary(backward), data.frame(cp, outmat))
+```
+
+In this particular case, the final model is the same one achieved via minimizing the Cp from the best subset model. This does NOT always occur.
+
+3. Forward selection
+
+For forward selection, we start from a model with just an intercept and build up a model one predictor at a time.
+
+```{r}
+forward <- regsubsets(cesd ~ age + d1 + drugrisk + i1 + i2 + indtot +
+               mcs + pcs + pss_fr + sexrisk, data = HELPrct, method = "forward", nbest = 1)
+with(summary(forward), data.frame(cp, outmat))
+```
+
+This method also obtains the same model, and the same ones for other sizes. Again, the methods do not always agree on final models!
+
+4. Stepwise Regression
+
+Starts off looking like forward selection but allows for predictors to be kicked out as the process goes. 
+
+```{r}
+stepwise <- regsubsets(cesd ~ age + d1 + drugrisk + i1 + i2 + indtot +
+               mcs + pcs + pss_fr + sexrisk, data = HELPrct, method = "seqrep", nbest = 1)
+with(summary(stepwise), data.frame(cp, outmat))
+```
+
+The final model based on Cp remains the same, but you can see the size 8 model was different.  
+
+
+### Other Functions
+
+There are functions in other libraries that can run these as well. stepAIC is in the MASS library(but suggest calling it as MASS::stepAIC due to issues with dplyr). Here are the same examples with other code for each method. 
+
+1. Best Subsets and Mallow's Cp Code
+
+First we set the list of explanatory variables for the leaps function to work on. Then we tell it to run using the Cp method and plot the results. 
+
+```{r}
+explanatory <- with(HELPrct, cbind(age, d1, drugrisk, i1, i2, indtot, mcs, pcs, pss_fr, sexrisk))
+head(explanatory, 1) #take a look at the predictors, be sure correct set used
+results <- with(HELPrct, leaps(explanatory, cesd, method = "Cp")) #obtain best subsets results with Cp method
+xyplot(Cp ~ size, ylim = c(0,20), data = results)
+ladd(panel.abline(a = 0,b = 1))
+```
+
+Note that reported size includes the intercept term, so since Cp for a full set of k terms would be k+1, size=max Cp. We add the line size=Cp to consider where good models are (below the line). We can examine lots of properties about the best subsets solutions as follows:
+
+```{r}
+favstats(results$Cp ~ results$size)
+minimum <- which.min(results$Cp); minimum #determine which model has lowest Cp value
+results$Cp[minimum] #determine value of lowest Cp
+results$which[minimum, ] #pull out model that has minimum Cp
+```
+
+In order to determine the model, note that you need to match up the predictors in order with the list. I found it helpful to reprint the head command above to match up the predictors. We can then fit the best subset model, using only those variables marked "True".
+
+```{r}
+Cpmod <- lm(cesd ~ i1 + mcs + pcs + pss_fr + sexrisk, data = HELPrct); summary(Cpmod)
+```
+
+How does this solution compare to the model with all 10 predictors?
+
+2. Backward elimination
+
+Recall that backward elimination starts from the full model. The process is achieved in R as follows, with a simple summary table provided.
+
+```{r}
+MASS::stepAIC(modall, direction="backward",trace=FALSE)$anova 
+```
+
+3. Forward selection
+
+For forward selection, we start from a model with just an intercept and build up a model one predictor at a time. We have to tell it a model that has the maximal list of predictors, as well as what our minimum is (just intercept).
+
+```{r}
+modsmall <- lm(cesd ~ 1, data = HELPrct) #fits a model with just an intercept
+MASS::stepAIC(modsmall, scope = list(upper = modall, lower = ~1), direction="forward",trace=FALSE)$anova
+```
+
+
+4. Stepwise Regression
+
+Starts off looking like forward selection but allows for predictors to be kicked out as the process goes. 
+
+```{r}
+MASS::stepAIC(modsmall, scope = list(upper = modall, lower = ~1), direction = "both",trace = FALSE)$anova
+```
+
+
+Note that stepAIC can give you individual models based on its internal criteria OR you can print out the steps to find other size models. The regsubsets command lets you pick descriptive statistics about the fit that you want to use for assessment. 
+

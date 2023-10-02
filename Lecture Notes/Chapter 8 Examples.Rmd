@@ -1,0 +1,190 @@
+---
+title: "Stat 495 - Chapter 8 Examples"
+author: "A.S. Wagaman"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+
+```{r, include = FALSE}
+library(mosaic)
+library(rpart)
+library(rpart.plot)
+library(partykit)
+library(MASS) #probably shouldn't load due to conflict with select, but not using select here
+library(GGally)
+library(lmtest) # for likelihood ratio tests
+```
+
+
+You've already seen logistic regression (refer to our separate notes there). These examples are designed to show you Poisson regression and regression trees. The code is re-used from previous courses, so there may be better / more modern packages, which you can feel free to use if you know them. 
+
+### Poisson Regression
+
+In Poisson regression, the response variable is a count. In this data set, we have data on fabric being mass-produced. In tests for quality control, it is subjected to two different processes for different amounts of time (seconds), and the number of weak spots for each sheet of fabric are counted. We want to assess if there is a relationship between the time it spends in each process and the number of weak spots, including whether there is an interaction effect. 
+
+```{r}
+fabric <- read.csv("https://awagaman.people.amherst.edu/stat495/fabricdata.csv", header = T)
+```
+
+
+We can visualize the data since there are only three variables fairly easily.
+
+```{r}
+ggplot(data = fabric, aes(x = Time1, y = Time2)) +
+  geom_point()  + aes(colour = WeakSpots, size = WeakSpots) +
+  theme(legend.position = "right") +
+  labs(title = "Relationship between Times and # of Weak Spots",
+       color = "Weak Spots",
+       size = "Weak Spots")
+```
+
+
+To fit the model, we use our *glm* function.
+
+```{r}
+fabricmod <- glm(WeakSpots ~ Time1 * Time2, data = fabric, family = poisson (link = log))
+msummary(fabricmod)
+lrtest(fabricmod)
+```
+
+Note that the default link for the poisson is the log link, so you can actually just state family = poisson and it will use that link. 
+
+
+The resulting test output suggests that there is at least one significant predictor. However, we don't see any in the output. We may not need that interaction term, so let's refit and see what happens.
+
+
+```{r}
+fabricmod2 <- glm(WeakSpots ~ Time1 + Time2, data = fabric, family = poisson (link = log))
+msummary(fabricmod2)
+lrtest(fabricmod2)
+```
+
+Aha! So, both predictors are significant in the presence of each other but the interaction is not significant. When looking at the coefficients, the ``link'' function is the log, so you are looking at expected log count changes in the response. 
+
+Overdispersion can be a problem here, and there are ways to estimate robust coefficients and standard errors. Just like there was a quasibinomial option for the family in R to handle overdispersion, there is a quasipoisson you can use for the same purpose. There's a lot more you can learn about Poisson regression if you want to apply it to a problem. 
+
+
+### Trees - Short Example from an Activity by Prof. Horton - Classification
+
+``Regression trees (chapter 8 of CASI) are an important nonparametric modeling approach (see https://en.wikipedia.org/wiki/Decision_tree_learning).  Here we consider an example using the HELP (Health Evaluation and Linkage to Primary Care) study where we are interested in predictors of being homeless (defined as one or more nights on the street or in a shelter in the past 90 days).''
+
+This is a classification example, not typical regression, since it has a binary response (note the method = "class"), like logistic regression. This is similar to the book's spam example. 
+
+```{r, message = FALSE}
+homeless.rpart <- rpart(homeless ~ female + i1 + substance + sexrisk + mcs +
+   pcs, method="class", data = HELPrct)
+printcp(homeless.rpart)
+pdf("party.pdf", width = 14, height = 14)
+plot(as.party(homeless.rpart))
+dev.off()
+```
+
+The tree here is output to a .pdf called "party.pdf". Open it to view the tree. Be sure to include the dev.off() line here. 
+
+How would this compare to the results from a logistic regression model?
+
+```{r}
+mod <- glm(homeless == "homeless" ~ i1 + female + sexrisk + pcs, family = binomial, 
+  data = HELPrct)
+msummary(mod)
+```
+
+"We see that the results are similar: more drinking (higher scores for `i1`) are associated with higher
+odds of being homeless.  The same is true for PCS (see the comparison of the first two nodes or the comparison
+of the last two nodes).''  
+
+There are several options for packages in R to help display trees. Rpart.plot is one of these. This could be written to a file as well (see above).
+
+```{r}
+rpart.plot(homeless.rpart)
+```
+
+Trees can also predict quantitative responses, in that case being a regression tree, as described in the text, and shown in the next example.
+
+### Trees - Iris - Regression
+
+Now we want to use a quantitative response in our regression tree. 
+
+```{r}
+data(iris)
+ggpairs(iris)
+```
+
+Suppose we want to predict Sepal.Length using the other variables as predictors.
+
+```{r}
+iris.rpart <- rpart(Sepal.Length ~ . , data = iris, method = "anova") #method = "anova" for regression 
+printcp(iris.rpart)
+
+#one tree
+rpart.plot(iris.rpart)
+
+# example tree written to pdf using other "pretty" function for tree
+pdf("iris.pdf", width = 14, height = 14)
+plot(as.party(iris.rpart)) # could sub in rpart.plot line here instead
+dev.off()
+```
+
+We print the tree to this pdf with one command and use a second to output the same tree to iris.pdf. They will look different based on the package doing the graphic. The one sent to pdf shows boxplots for the nodes in terms of the response values, but not the predicted value. If we want to look at the predictions, we can get those via:
+
+```{r}
+iris2 <- mutate(iris, fittedtree = predict(iris.rpart))
+```
+
+We could then calculate the MSE. Note that I added the fitted values to a new data set for convenience here.
+
+```{r}
+mean((iris2$fittedtree - iris2$Sepal.Length)^2)
+```
+
+Note that this is the MSE on the model fit to the entire data set (it would be better to have a training/test split). 
+
+There are many options that can be supplied to rpart to control properties of the tree (how big it is, what criteria is used for splitting, etc.). 
+
+For example, the control option below forces the tree to stop way sooner (much too soon in this case), by making it so that when a split is made, at least 30 observations have to end up in either node from the split. Given that there are only 150 observations, this is not a good choice for this example. 
+
+```{r}
+iris.rpart2 <- rpart(Sepal.Length ~ . , data = iris, control = rpart.control(minbucket = 30))
+printcp(iris.rpart2)
+```
+
+You can explore other options in rpart.control via the help menu. There is a default value of a complexity parameter, cp, of 0.01. It tends to override the other control parameters unless they supersede it. If you want to let a tree really grow, governed by minsplit and minbucket, you should set cp to 0 (or something very very small), as in this example:
+
+```{r}
+iris.rpart3 <- rpart(Sepal.Length ~ . , data = iris, control = rpart.control(minbucket = 4, cp = 0, minsplit = 10))
+printcp(iris.rpart3)
+```
+
+You can get an estimate of performance with an option of using cross-validation in the creation of the tree. The default is 10-fold CV. This is governed by the xval control parameter. Here, we see some output related to the cross-validation process, which may help you determine where you can prune the tree. 
+
+```{r}
+plotcp(iris.rpart)
+```
+
+If you want to start from your existing tree and prune it, you can do that using the *prune* function. You need to specify a complexity parameter to use to stop the prune. Note that these are output in the printout so you can see how many levels you will end up with (roughly). 
+
+```{r}
+iris.prune <- prune(iris.rpart, cp = 0.02)
+printcp(iris.prune)
+pdf("irisprune.pdf", width = 14, height = 14)
+plot(as.party(iris.prune))
+dev.off()
+```
+
+The various listed error rates in the printout do have meaning but I'm used to interpreting them in the context of classification problems. You can probably find the details for regression trees if you want.  
+
+There is also another library available to create trees called *tree* which was developed to support particular textbooks. rpart has the same functionality. 
+
+
+
+
+
