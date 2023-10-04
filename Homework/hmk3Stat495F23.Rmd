@@ -340,18 +340,122 @@ Other guidance:
 * If none of your goals seem to align with this, you can pick one based on the examples I listed above, or something similar that you want to work on. 
 * Use your best judgement for any models you need to fit here. If you just need a model to practice writing, it is okay if that's not the overall best model you might pick. On the other hand, if you want to practice model fitting, you should be spending time discussing that and showing your work for it. We will practice the entire data analysis process in future work. 
 
-
 > part a: What aspect of your goals for class are you going to tackle for this assignment? How? 
 
 SOLUTION:
 
-I'm going to work on my EDA and make sure to annotate my code clearly throughout.
+I will try to perform EDA that is comprehensive but also efficient and tells me practical information to help narrow down my analysis paths. For the one binary variable, Private, there are many types of EDA that I could do, such as a frequency table, a stacked bar plot, or even a heatmap perhaps. As for the quantitative rest of the variables versus Apps, I can create histograms, scatterplots, or maybe density plots with overlapping distributions (overlay the density plots of the quantitative variable for each binary outcome to see the differences in distribution?) so as to see the datas' shape, spread, and center. For one of my class projects in STAT-320, my groupmates created violin plots, which I'd never seen before. I'd be interested in learning when that is useful as well. Lastly, I will consider including a correlation matrix among all of the variables to try to uncover instances of multicollinearity just on first glance. Also, although correlation is not a comprehensive statistic of the strength of an interaction between two variables, it may give a starting point to understanding the predictors relative to the response variables Apps and help to at least eliminate very weak ones.
 
 > part b: Include your work here!
 
 SOLUTION:
 
 
+```{r}
+p0 <- gf_dens(~ Apps, data = College, 
+              ylab = "Density", 
+              xlab = "Apps")
+p0
+
+College <- mutate(College, log_apps = log(Apps))
+p1 <- gf_dens(~ log_apps, data = College, 
+              ylab = "Density", 
+              xlab = "log(Apps)")
+p1
+
+favstats(~ log_apps, data = College)
+```
+
+```{r echo = FALSE, warning = FALSE, fig.width = 3.5}
+# Quantitative variables density plots initialization
+p2 <- gf_dens(~ Accept, data = College, 
+              ylab = "Density", 
+              xlab = "Accepted")
+p3 <- gf_dens(~ Enroll, data = College, 
+              ylab = "Density", 
+              xlab = "Enrolled")
+p4 <- gf_dens(~ Top10perc, data = College, 
+              ylab = "Density", 
+              xlab = "Top10perc")
+p5 <- gf_dens(~ Top25perc, data = College, 
+              ylab = "Density", 
+              xlab = "Top25perc")
+p6 <- gf_dens(~ F.Undergrad, data = College, 
+              ylab = "Density", 
+              xlab = "F.Undergrad")
+p7 <- gf_dens(~ P.Undergrad, data = College, 
+              ylab = "Density", 
+              xlab = "P.Undergrad")
+p8 <- gf_dens(~ Outstate, data = College, 
+              ylab = "Density", 
+              xlab = "Outstate")
+p9 <- gf_dens(~ Room.Board, data = College, 
+              ylab = "Density", 
+              xlab = "Room.Board")
+p10 <- gf_dens(~ Books, data = College, 
+              ylab = "Density", 
+              xlab = "Books")
+p11 <- gf_dens(~ Personal, data = College, 
+              ylab = "Density", 
+              xlab = "Personal")
+p12 <- gf_dens(~ PhD, data = College, 
+              ylab = "Density", 
+              xlab = "PhD")
+p13 <- gf_dens(~ Terminal, data = College, 
+              ylab = "Density", 
+              xlab = "Terminal")
+p14 <- gf_dens(~ S.F.Ratio, data = College, 
+              ylab = "Density", 
+              xlab = "S.F.Ratio")
+p15 <- gf_dens(~ perc.alumni, data = College, 
+              ylab = "Density", 
+              xlab = "perc.alumni")
+p16 <- gf_dens(~ Expend, data = College, 
+              ylab = "Density", 
+              xlab = "Expend")
+p17 <- gf_dens(~ Grad.Rate, data = College, 
+              ylab = "Density", 
+              xlab = "Grad.Rate")
+
+# Qualitative variable bar graphs
+p18 <- gf_bar(~ Private, data = College, 
+             ylab = "Frequency",
+             xlab = "Private")
+
+p2
+p3
+p4
+p5
+p6
+p7
+p8
+p9
+p10
+p11
+p12
+p13
+p14
+p15
+p16
+p17
+p18
+```
+
+```{r}
+# Statistical summary for some quantitative variables
+favstats(~ Accept, data = College)
+favstats(~ Enroll, data = College)
+favstats(~ Top10perc, data = College)
+favstats(~ F.Undergrad, data = College)
+
+# Tally table for qualitative variable
+tally(~ Private, format = "percent", data = College)
+```
 
 
+```{r message=FALSE}
+ggpairs(College, columns = 2:ncol(College))
+```
+
+From the density plots of the potential quantitative predictors, we see that some variables are already mostly normally-distributed, e.g. Top25perc and Grad.Rate. Other variables, like Top10perc, Outstate, and S.F.Ratio are a bit skewed, while others, like Accepted and F.Undergrad are extremely right-skewed. These plots don't allow any conclusions about correlation between the predictors and the response variable, but they do suggest that different sorts of transformations on the predictors would be appropriate before regressing Apps on the them and proceeding with any analysis. Also the density plot of our desired response variable, Apps, demonstrates heavy right-skewness, which indicates that a transformation of the variable. After applying the log transform, we have a distribution much closer to normal.
 
