@@ -1,6 +1,6 @@
 ---
 title: "Homework 3 - Stat 495"
-author: "YourNameGoesHere"
+author: "Cassandra Jin"
 date: "Due Monday, Oct. 2 by midnight"
 output:
   pdf_document:
@@ -17,6 +17,11 @@ output:
 ```{r, include = FALSE}
 library(mosaic)
 library(ISLR)
+library(GGally)
+library(stats)
+library(leaps)
+library(ggrepel)
+library(glmnet)
 options(digits = 6)
 ```
 
@@ -56,31 +61,133 @@ This data set contains information from 1995 on US Colleges from US News and Wor
 
 SOLUTION:
 
+```{r}
+College <- na.omit(College)
+
+set.seed(495)
+n <- nrow(College)
+train_index <- sample(1:n, (2/3) * n)
+test_index <- setdiff(1:n, train_index)
+
+train <- College[train_index, ] 
+test <- College[test_index, ]
+
+#further set up for using glmnet
+x_train <- model.matrix(Apps ~ ., train)[, -1]
+x_test <- model.matrix(Apps ~ ., test)[, -1]
+
+y_train <- train %>%
+  select(Apps) %>%
+  unlist() %>%
+  as.numeric()
+
+y_test <- test %>%
+  select(Apps) %>%
+  unlist() %>%
+  as.numeric()
+```
+
 > part b: Fit a "kitchen sink" linear regression model on the training set. Report the test error obtained, and comment on any issues with the model (such as conditions, etc.).
 
 SOLUTION:
+
+```{r}
+all_mod <- lm(Apps ~ ., data = train)
+msummary(all_mod)
+mplot(all_mod, which = 1)
+mplot(all_mod, which = 2)
+```
+
+```{r}
+all_pred <- predict(all_mod, newx = x_test, exact = T, x = x_train, y = y_train)
+mean((all_pred - y_test)^2)
+```
+
+The test MSE is 26751721. The kitchen-sink model does not seem to satisfy the conditions well. We see extreme heteroscedasticity on the residuals vs. fitted plot, as well as a downward then plateauing trend from left to right. For the Q-Q plot, although many points lie solidly on the line for a center section, they begin to stray downward on the left and also upward on the right. These indicate that the model fails to satisfy the conditions of equal variances and normality of errors.
 
 > part c: Fit a linear regression model using an automated variable selection method of your choice (from Stat 230) on the training set. Report the test error obtained, and comment on any issues with the model (such as conditions, etc.).
 
 SOLUTION:
 
+```{r}
+best <- regsubsets(Apps ~ ., data = train, nbest = 1)
+with(summary(best), data.frame(rsq, adjr2, cp, rss, outmat))
+
+best_mod <- lm(Apps ~ Accept + Enroll + Top10perc + F.Undergrad + Outstate + PhD + Expend + Grad.Rate, data = College)
+msummary(best_mod)
+mplot(best_mod, which = 1)
+mplot(best_mod, which = 2)
+```
+
+```{r}
+best_pred <- predict(best_mod, newx = x_test, exact = T, x = x_train, y = y_train)
+mean((best_pred - y_test)^2)
+```
+
+To maximize Adjusted $R^2$ and minimize Cp value, I picked the model with 8 predictors. The test MSE for this model is 25527700, slightly smaller than that of the kitchen-sink model. The best subsets model still does not seem to satisfy the conditions well. There is less of a shaped trend in the points on the residuals vs. fitted plot, but we still see extreme heteroscedasticity. For the Q-Q plot, the points deviate from the line further toward the ends compared to how they behave on the kitchen-sink Q-Q plot, but the points still stray considerably from the line. These indicate that the best subsets model also fails to satisfy the conditions of equal variances and normality of errors.
+
 > part d: Fit a ridge regression model on the training set, with lambda chosen by cross-validation. Report the lambda chosen and the test error obtained.
 
 SOLUTION:
+
+```{r}
+set.seed(495)
+x <- model.matrix(Apps ~ ., College)[, -1] # trim off the first column
+y <- College %>% select(Apps) %>%  unlist() %>%  as.numeric()
+
+grid <- 10^seq(10, -2, length = 100)
+ridge_mod <- glmnet(x, y, alpha = 0, lambda = grid)
+
+dim(coef(ridge_mod))
+# plot(ridge_mod, label = TRUE)
+
+cvridge.out <- cv.glmnet(x_train, y_train, alpha = 0) # Fit ridge regression model on training data
+bestlam_ridge <- cvridge.out$lambda.min  # Select lambda that minimizes training MSE
+bestlam_ridge
+```
+
+```{r}
+# fit model on training set
+ridge_mod <- glmnet(x_train, y_train, alpha = 0, lambda = grid)
+#get predictions on test set using model
+ridge_pred <- predict(ridge_mod, s = bestlam_ridge, newx = x_test)
+# compute MSE on test set
+mean((ridge_pred - y_test)^2)
+# view coefficients
+predict(ridge_mod, type = "coefficients", s = bestlam_ridge)[1:18,]
+```
+
+The value of $\lambda$ that results in the smallest cross-validation error is 385.428. The test MSE for this model is 139216, which is much smaller than those of the kitchen-sink model and the best subsets model.
 
 > part e: Fit a lasso model on the training set, with lambda chosen by cross-validation. Report the lambda chosen and the test error obtained.
 
 SOLUTION:
 
+```{r}
+lasso_mod <- glmnet(x_train, y_train, alpha = 1, lambda = grid) #make sure alpha = 1 for Lasso
+set.seed(495)
+cvlasso.out <- cv.glmnet(x_train, y_train, alpha = 1)
+# plot(cvlasso.out)
+bestlam_lasso <- cvlasso.out$lambda.min
+bestlam_lasso
+
+lasso.pred <- predict(lasso_mod, s = bestlam_lasso, newx = x_test)
+mean((lasso.pred - y_test)^2)
+# plot(lasso_mod)
+predict(lasso_mod, type = "coefficients", s = bestlam_lasso)[1:18,]
+```
+
+The value of $\lambda$ that results in the smallest cross-validation error is 1.87418, and the test MSE for this model is 1605308, which is larger than the test MSE for the ridge regression model.
 
 > part f: Comment on the results obtained across the four models. Address the following questions as part of your response. Do the test errors differ much? Do the coefficients differ greatly? In particular, if any variables were left out of the model in (c) or (e), is there any insight that they might have been removed based on the models in (b) or (d)? Which final model would you select here? Why?
 
 SOLUTION:
 
+The kitchen-sink linear regression model and the model picked by the best subsets method had similarly huge test MSEs, within the same order of magnitude. The models obtained through ridge and lasso were also similar in test MSE, but the MSE values were much smaller than those of the kitchen-sink and best subsets linear regression models.
 
+From the kitchen-sink model in (b) to the best subsets model in (c), the variables PrivateYes, Top25perc, P.Undergrad, Room.Board, Books, Personal, Terminal, S.F.Ratio, and perc.alumni were dropped, and all of these variables demonstrated either insignificant or nearly insignificant fitted coefficients in the summary output of the kitchen-sink model. With the best subsets method applied, some of the leftover variables (Accept, Enroll, F.Undergrad, Outstate, Expend, Grad.Rate) had coefficient values of smaller magnitude, while others (Top10perc, PhD) had larger magnitude in the model for (c).
 
-
-
+Between the ridge and lasso models, no coefficients are eliminated. Both models don't set any coefficients to 0, but observing the variables which were determined to have significant predictability in the best subsets model, all of these variables had larger magnitudes in the lasso model than in the ridge. The only notable coefficient was the Enroll variable, which has a positive coefficient for ridge but a negative one for lasso.
 
 \newpage
 
@@ -101,7 +208,27 @@ Our focus is on predicting the response variable Sand, using the selected variab
 SOLUTION:
 
 ```{r}
+set.seed(495)
+n <- nrow(newsoil)
+train_index <- sample(1:n, 0.75 * n)
+test_index <- setdiff(1:n, train_index)
 
+train <- newsoil[train_index, ] 
+test <- newsoil[test_index, ]
+
+#further set up for using glmnet
+x_train <- model.matrix(Sand ~ ., train)[, -1]
+x_test <- model.matrix(Sand ~ ., test)[, -1]
+
+y_train <- train %>%
+  select(Sand) %>%
+  unlist() %>%
+  as.numeric()
+
+y_test <- test %>%
+  select(Sand) %>%
+  unlist() %>%
+  as.numeric()
 ```
 
 > part b: Fit lasso models to predict Sand using all the possible predictors. Choose two lasso models - one that has a "best" lambda determined in some appropriate way, and another model with a different non-zero lambda of your choice. How many slope coefficients are set to 0 in each of your chosen lasso models?
@@ -109,44 +236,88 @@ SOLUTION:
 SOLUTION:
 
 ```{r}
-
+lasso_mod <- glmnet(x_train, y_train, alpha = 1, lambda = grid) #make sure alpha = 1 for Lasso
+set.seed(495)
+cvlasso.out <- cv.glmnet(x_train, y_train, alpha = 1)
+# plot(cvlasso.out)
+bestlam_lasso <- cvlasso.out$lambda.min
+bestlam_lasso
 ```
+
+```{r}
+predict(lasso_mod, type = "coefficients", s = 6)[1:18,]
+predict(lasso_mod, type = "coefficients", s = bestlam_lasso)[1:18,]
+```
+
+Using cross-validation to choose lambda, we find that 5.99889e-05 is the "best" lambda. In this model, all but one of the slope coefficients is set to 0, and in the model with my arbitrarily chosen lambda value of 6, all slope coefficients are 0.
 
 > part c: Fit a ridge model to predict Sand using all the possible predictors. How many slope coefficients are set to 0 in your ridge model?
 
 SOLUTION:
 
 ```{r}
+set.seed(495)
+x <- model.matrix(Sand ~ ., newsoil)[, -1] # trim off the first column
+y <- newsoil %>% select(Sand) %>%  unlist() %>%  as.numeric()
 
+grid <- 10^seq(10, -2, length = 100)
+ridge_mod <- glmnet(x, y, alpha = 0, lambda = grid)
+
+dim(coef(ridge_mod))
+# plot(ridge_mod, label = TRUE)
+
+cvridge.out <- cv.glmnet(x_train, y_train, alpha = 0) # Fit ridge regression model on training data
+bestlam_ridge <- cvridge.out$lambda.min  # Select lambda that minimizes training MSE
+bestlam_ridge
 ```
 
+
+```{r}
+# fit model on training set
+ridge_mod <- glmnet(x_train, y_train, alpha = 0, lambda = grid)
+# view coefficients
+predict(ridge_mod, type = "coefficients", s = bestlam_ridge)[1:18,]
+```
+
+Fitting a ridge model to predict Sand using all the possible predictors, we find a best lambda value of 0.0599889, and none of the slope coefficients are set to 0 in this ridge model.
 
 > part d: Compute test MSEs for both of your lasso models and your ridge model. 
 
 SOLUTION:
 
 ```{r}
+# arbitrary lasso MSE
+lasso.pred1 <- predict(lasso_mod, s = 6, newx = x_test)
+mean((lasso.pred1 - y_test)^2)
 
+# selected lasso MSE
+lasso.pred2 <- predict(lasso_mod, s = bestlam_lasso, newx = x_test)
+mean((lasso.pred2 - y_test)^2)
+
+# ridge MSE
+ridge_pred <- predict(ridge_mod, s = bestlam_ridge, newx = x_test)
+mean((ridge_pred - y_test)^2)
 ```
 
-
+The test MSEs for the lasso model and the ridge model are 0.28289 and 0.278501, respectively.
 
 > part e: Write a few sentences to address the following questions. Does the test MSE from the model with the "best" lambda suggest it is in fact a better predictive model than your other lasso model? Is ridge better than the lasso models? Which final model would you choose here from these three models? Why?
 
 SOLUTION:
 
-
+The test MSE from the model with the "best" lambda does suggest it is in fact a better predictive model than the other lasso model. I'm not sure how effectively large the magnitudes of the test MSEs for each lasso model are in the context of the data, but comparing the test MSE for the lasso model with arbitrary lambda (0.966146) and the test MSE for the lasso model with the cross-validated lambda (0.28289), we see that the latter is multiple times smaller than the former. However, the test MSE for the lasso model with the cross-validated lambda is still just slightly larger than that of the ridge model. Even so, the final model I would you choose here from these three is the lasso model with the cross-validated lambda, because the ridge model assigns non-zero slope coefficients to so many variables and thus retains a massive number of predictors, whereas the the lasso model yields many zero-value coefficients. For an increase of less than 0.005 of test MSE, I think it is worth it to use a much simpler model with fewer predictors allowed.
 
 > part f: What is the default setting for the normalize option in lars and the standardize option in glmnet? Why is this setting important to the model fit?
 
 SOLUTION:
 
+The default setting for both the normalize option in lars and the standardize option in glmnet is TRUE. This is important to the model fit, because both normalization and standardization ensure that the regularization penalties are applied fairly and effectively to all predictors, regardless of their scales or magnitudes. Thus, they help maintain the interpretability and stability of the resulting models.
 
 > part g: Explain what option you would change in order to fit an elastic net penalty (not OLS or ridge) using glmnet.
 
 SOLUTION:
 
-
+In order to fit an elastic net penalty (not OLS or ridge) using glmnet, I would adjust the alpha parameter to a value that represents the mixing parameter between lasso and ridge regression penalties. Since the function applies the lasso penalty when alpha = 1 and the ridge penalty when alpha = 0, I would choose an alpha value in between, such as 0.5, to balance the two penalties and achieve an elastic net one.
 
 \newpage
 
@@ -173,6 +344,8 @@ Other guidance:
 > part a: What aspect of your goals for class are you going to tackle for this assignment? How? 
 
 SOLUTION:
+
+I'm going to work on my EDA and make sure to annotate my code clearly throughout.
 
 > part b: Include your work here!
 
