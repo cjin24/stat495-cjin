@@ -1,0 +1,514 @@
+---
+title: "Stat 495 - Chapter 17 Examples - Random Forests and Boosting"
+author: "A.S. Wagaman"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, include = FALSE} 
+library(mosaic) # for formula structure and tidyverse
+library(GGally) # scatterplot matrices
+library(rpart) # for classification trees
+library(rpart.plot) # to print nice trees
+library(randomForest) # for random forests
+library(gbm) # for boosting
+library(xgboost) # also for boosting
+```
+
+
+## Acknowledgments:  
+
+The fish data set example is based on notes from George Michailidis' Multivariate Data Analysis course, used with permission. 
+
+## Context:
+
+These examples were prepared for Stat 240: Multivariate Data Analysis in a Classification setting (i.e., not regression). 
+
+A section of notes discussing the basics of classification has been deleted. From that section, two acronyms were defined that are used below. Those are AER - apparent error rate - basically the error rate on your training set (overly optimistic), and estimated TER - estimated true error rate - basically the error rate from your test set (or from cross-validation or OOB samples). 
+
+
+# Data Sets 
+
+These data sets are used throughout: fish and olive (both online). Several packages are necessary for classification, so they've been loaded above. We preload the data sets.
+
+```{r}
+fish <- read.table("https://awagaman.people.amherst.edu/stat240/fish.txt",h=T)
+fish <- mutate(fish, Species = factor(Species))
+olive <- read.table("https://awagaman.people.amherst.edu/stat240/olive.txt",h=T)
+olive <- mutate(olive, Area = factor(Area), Region = factor(Region))
+```
+
+I've tried to add notes for where in ISLR (Introduction to Statistical Learning by Witten et al. - pdf available through the library) these methods are covered, so you can refer there for details, etc. as you read. 
+
+We create training and test sets for each data set, though we won't need them for some of the methods which have automated CV options included. I used a 75-25 split.
+
+```{r}
+set.seed(240)
+
+n <- nrow(fish)
+train_index <- sample(1:n, 0.75 * n)
+test_index <- setdiff(1:n, train_index)
+
+fish_train <- fish[train_index, ] 
+fish_test <- fish[test_index, ]
+
+tally(fish$Species) #white is a small class
+tally(fish_train$Species) #checks that white is not missed in the training set
+
+set.seed(240)
+
+n2 <- nrow(olive)
+train_index2 <- sample(1:n2, 0.75 * n2)
+test_index2 <- setdiff(1:n2, train_index2)
+
+olive_train <- olive[train_index2, ] 
+olive_test <- olive[test_index2, ]
+```
+
+In the fish data set, I checked to make sure the white class was not dropped out of the training set because it is very small. For the olive data set, there aren't similar concerns about Region or Area, as there were many more observations and it would be unlikely to miss one.
+
+# Review - (Classification) Trees  
+
+Trees are covered in Chapter 8 of ISLR, and Chapter 8 of CASI. 
+
+A classification tree is constructed via recursive partitioning of the variable space into hypercubes which separate the classes. Once all hypercubes are constructed, each hypercube gets one class label but multiple cubes can have the same class label. For example, you might end up with 9 cubes with 4 labeled class 1, 3 labeled class 2, and 2 cubes labeled class 3. You never actually "see" the cubes. The solution is displayed as a tree. The branches in the tree determine the hypercubes. The challenges for the method include determining how to create the hypercubes and how many hypercubes you need. These two issues are referred to a splitting and pruning respectively (because it is a tree). 
+
+In terms of stability, it is a fact that trees are not very stable. Changes to a few observations (removing outliers, for example) can drastically change the tree. This issue leads us to construct random forests (collections of trees) as another method, next. However, an individual tree can be useful for understanding how the classes are different. In terms of optimality, trees do not solve any optimality conditions (they do not minimize loss directly). Trees are also greedy! Trees can only think one step ahead at a time. They pick the best split at the next step without considering steps afterwards. 
+
+Next, we consider examples of classification trees for two different data sets. As this is the first time we present each data set formally, we do a little data setup for each.  
+
+## Example 1: Fish  
+
+
+The fish data set contains the following quantitative variables:  
+Weight: Weight of the fish (in grams)  
+Length1: Length from the nose to the beginning of the tail (in cm)  
+Length2: Length from the nose to the notch of the tail (in cm)  
+Length3: Length from the nose to the end of the tail (in cm)  
+Height%: Maximal height as % of Length3  
+Width%: Maximal width as % of Length3  
+
+It also contains the class variable - Species. There are 7 species (frequency in parentheses): bream (33), parki  (10), perch (54), pike (16), roach (18), smelt (12), and white (5). 
+
+```{r}
+tally(~ Species, data = fish, format = "count")
+```
+
+What would the misclassification error rate be if you classified every fish as perch because that is the most prevalent class? 
+
+```{r}
+n <- nrow(fish)
+(n - 54)/n
+```
+
+This error rate should always be in your mind for a given problem as a baseline you want to do better than.
+
+There are some interesting variable relationships. For example, we expect L1, L2, and L3 to be highly correlated. Additionally, L3 >= L2 >= L1. In situations like this, you might decide to create new variables which describe the differences between each of the length variables. For example L21 = L2 - L1, and L31 = L3 - L1 and finally L32=L3-L2. 
+
+```{r}
+fish <- mutate(fish, L21 = L2 - L1, L31 = L3 - L1, L32 = L3 - L2)
+fish_train <- mutate(fish_train, L21 = L2 - L1, L31 = L3 - L1, L32 = L3 - L2)
+fish_test <- mutate(fish_test, L21 = L2 - L1, L31 = L3 - L1, L32 = L3 - L2)
+```
+
+Briefly, we undertake a preliminary analysis to get a sense of the data and variable relationships.
+
+```{r, fig.width = 6, fig.height = 6}
+glimpse(fish)
+
+ggpairs(fish, columns = 2:7, ggplot2::aes(color = Species))
+ggpairs(fish, columns = 8:10, ggplot2::aes(color = Species))
+```
+
+Individual histograms (when not colored by Species) reveal the distributions are unimodal, and many appear normally distributed. Weight however is heavily skewed right. When colored by Species, we see some separation based on values of the different variables, and often, clear modes for the different Species.  
+
+Briefly, we fit a tree for reference in terms of performance on this data set. 
+
+```{r}
+fish.control <- rpart.control(minsplit = 10, minbucket = 3, xval = 148)
+fish.treeorig <- rpart(Species ~ ., data = fish, method = "class", control = fish.control)
+printcp(fish.treeorig)
+```
+
+Note that you get cross-validated errors (both the average and standard deviation). So your AER here for the full tree is 0.010638(94/148) = 0.67% and the estimated TER via leave one out CV is 0.031915(94/148) = 2%. The AER is based on the entire data set as the training set and we used CV to get the estimated TER (rather than a train/test split idea). 
+
+Because there are seven classes of fish, the *rpart.plot* function protests, so we plot this in the default fashion. 
+```{r, fig.height = 7}
+plot(fish.treeorig)
+text(fish.treeorig, cex = 0.7) 
+```
+
+## Example 2: Olive  
+
+The olive oil data consists of the composition of 8 fatty acids (palmitic, palmitoleic, stearic, oleic, linoleic, arachidic, linolenic, eicosenoic) found in the lipid fraction of 572 Italian olive oils, along with variables for the region and area where the olive oil was produced. The composition variables are all quantitative, while region and area are numerically coded categorical variables. There are 3 regions and 9 areas of interest (4 in region 1, 2 in region 2, and 3 in region 3). Units for each fatty acid are not given, but definitely differ (some measured in thousands, some tens, etc.).
+
+Since we need a categorical response, we will be trying to predict region or area using the other variables. It turns out that classifying by Region can achieve 0% error (i.e. it's an easy problem), so I'm just going to focus on classifying Area. I'm going to create a second dataset without Region in it to make it a little easier for some of these commands as well.
+
+Here is an example tree.
+
+```{r}
+olive2 <- select(olive, -Region)
+
+olive.control <- rpart.control(minsplit = 10, minbucket = 3, xval = 572)
+olive.treeorig <-rpart(Area ~ ., data = olive2, method = "class", control = olive.control)
+printcp(olive.treeorig)
+```
+
+## Predictions  
+
+Most classification methods have a predict function that can be run to obtain predictions for a new data set. You can also run predict on the original data set in order to see which classes are having issues being classified correctly. Here, we demonstrate how this would work for the fish data set. Similar commands could be used for the olive data example.
+
+Recall that our tree was saved in the R object fish.treeorig. 
+
+```{r}
+fishtreepred <- predict(fish.treeorig, newdata = fish, type = "class")
+```
+
+Here, we run the command, noting the type = "class" argument. This tells R to make the prediction of the class. Otherwise, you would get probabilities of the observations being EACH class, and would then need to find the class with maximum probability as the prediction. 
+
+How would you look up help for this function? *predict* is a function in R that exists for MANY R objects. If you do ?predict, that won't be much help. What you need here is ?predict.rpart, because we are looking for how predict works on an rpart object. This is particularly important to find out whether the data option is called data or newdata, and whether you need to specify type, and what options there are. 
+
+Let's look at the predicted classes versus the true ones.
+
+```{r}
+tally(fishtreepred ~ Species, data = fish)
+```
+
+We see one pike was misclassified as a bream. That's it. This is called making a confusion matrix, and you can see correct classifications on the diagonal and errors off the diagonals. So, you could give the AER from this as 1/148. 
+
+# Random Forests (RF) (with Bagging and Boosting)  
+
+Random forests, bagging, and boosting are covered in Chapter 8 of ISLR, and Chapter 17 of CASI. These are all tree-based methods that are designed to improve on some of the issues that trees face. Be sure you are comfortable with the basics of trees before continuing on here. 
+
+Random forests is an example of an ensemble method (which means combining methods to improve prediction). The idea is that we will generate many predictions for each observation and use majority voting to determine the final class. Here, the predictions are generated by looking at many classification trees. Forests are designed to improve on trees. 
+
+Think about this for a minute. If we don't change the data set, how would we get a different tree? You'd have to change the node impurity measure. However, we know that if we change the data, we can get different trees. We won't alter any observations. Instead, we will just alter which observations are given as the data to the tree algorithm.  We also change one other aspect of the tree construction. Instead of allowing the tree to search through all available variables to determine the best split for the next step, we only give the algorithm a few random variables to try. Let's consider the algorithm for random forests a bit more in depth. 
+
+Remember that a bootstrap sample is a sample drawn with replacement from the original with the same number of observations - some observations will repeat, but others will be left out. Observations left out of a bootstrap sample are called OOB (out of bootstrap (or out of bag)) and form a natural test set because they are not used in the creation of that tree.
+
+
+## RF Algorithm:  
+
+1.	Start with original (full) data set  
+2.	Generate $B$ bootstrapped samples. Any observations left out from bootstrap sample $m$ are called the out of bag (OOB) sample for bootstrap $m$ and are treated like the test sample for that bootstrap iteration.  
+3.	Grow a tree for each bootstrapped sample with 2 special twists:  
+  + At each node, only a random set of variables is considered for the possible splits (for example, if there are 6 variables total, it might have to pick 3 randomly to consider for each split)  
+  +	No pruning! Grow each tree to its max size with basic stopping conditions only.  
+4.	Use majority voting over all bootstrapped trees to determine class.  
+
+As a result of using this algorithm, there is no single final tree you can look at. (You wouldn't want to look at all B trees either.) The model becomes VERY (read: almost impossible) to interpret due to aggregating all the trees together. We can look at the constructed tree sizes though, if that's of interest. 
+
+You need to consider a few issues when working with trees.   
+1.	Number of bootstrap samples - 100, 1000, 10000 - can do large numbers here but remember that the trees are NOT pruned, so these can be massive and requires more computing power than a regular tree   
+2.	Have to pick number of variables to consider at each node - 1, 2, log(p), whatever. Luckily, because you are growing many trees, the procedure does not appear to be too sensitive to this choice.      
+3.	Final model is not interpretable. Think about how you would average 1000 trees - you really can't. 
+
+
+Even with these issues, random forests can perform very well (indeed, very very well). These are VERY competitive estimators (i.e. they tend to do very well at predictions). They also have one other feature which can be very nice to capitalize on. Random forests can provide an estimate of the importance of each variable (assuming you try more than 1 per split). You can output the number of times each variable was picked for each split, and you know (or can compute) the expected number of times it should have come up randomly for consideration. You then look at how often it was used versus how often it should have been considered. The higher this ratio, the more important the variable. This information can be combined with 2 other measures - one related to classification accuracy and one related to the Gini impurity to use as importance measures. Higher (large) importance values mean a variable is very important for the classification.  This can be a useful way to help determine a subset of variables to use in other techniques. For example, if you have 100 variables and you want to run different classification methods that would be better with fewer variables, you might run a RF first, find the 10 most important variables, and then run the other method using just those 10. The only issue is that it may not work as well as you hope, since a ``good'' variable for a tree/forest is not necessarily a good variable for other techniques. 
+
+Note that because of the bootstrap aspect here, we do not need our training/test split approach or CV for forests. We can get estimated TERs using the OOB observations. The predict (predict.randomForest) function still exists though, and you can use it for predictions for NEW observations, for example, or to get predictions on a test set if you really want. We will use it to get our AERs below.
+
+## Example 1: Fish  
+
+Here is the code for Random Forests on this data set. Note, multiple packages exist to do RFs. This uses *randomForest*, but you could check out others, like *ranger*. Other packages like *caret* have good functionality for things like creating training/test splits and assessing these models. 
+
+```{r}
+set.seed(450)
+fish.rf <- randomForest(Species ~ ., data = fish, mtry = 3, ntree = 500, importance = T)
+#fish.rf  #these are commented off so they can be shown below in depth
+#table(fish$Species, predict(fish.rf, fish))
+#hist(treesize(fish.rf))
+#varImpPlot(fish.rf)
+```
+
+You can change the setseed to some other value - if you record the seed, you can check your answers with someone else by giving them your seed. Again this is for our results to be reproducible.  
+
+What does the period imply in the randomForest command?  
+What do you think mtry = 3 means?   
+What about ntree = 500?  
+(By the way, mtry has a default based on the number of variables (sqrt(p) for classification) and ntree = 500 is a default, so if you leave these out, that's what it will run.)
+
+Let's consider the output pieces. First, when you run fish.rf, you get the OOB error rate information - this is based on the observations left out of each bootstrap sample, so this is your estimated TER. 3.38% is really good. This part of the output WILL change for every different forest you grow assuming you change your seed. It also reminds you of the settings you had for the forest. It also gives you the error BY class, so you can see where the issues were. 
+
+```{r}
+fish.rf  
+```
+
+To get the AER, we need to look at the table generated by the predictions using the majority voting rule and the Dataset, which is the other table generated in your output.
+
+```{r}
+table(fish$Species, predict(fish.rf, fish))
+#you can run a tally command too
+```
+
+So, my AER is 0%. The random forest appears to be able to perfectly classify everything in my data set. Again, the OOB estimate of TER is about 3.38%. Still, it does a really good job. 
+
+Next we have information about end sizes of the trees displayed as a histogram. This is the number of final nodes. Remember, trees are grown to max based on stopping criteria (not pruned) in a forest.
+
+```{r}
+hist(treesize(fish.rf))
+```
+
+About how large were most of these trees? How does that compare to the single tree we had above?
+
+Generally speaking, for larger numbers of variables, and smaller mtry values, you'd expect tree sizes to increase. These histograms are usually unimodal and can be slightly skewed right (a few trees might make a series of poor choices based on what variables are available and end up being larger than the others). If you saw other patterns, you'd want to investigate. 
+
+Finally, we have the variable importance plot(s). If you turn the importance option off (which is the default), this part will only give you the Gini half of the plot. Variables higher up are better - they result in larger mean decreases in accuracy or Gini coefficients (and we know we want to minimize those values).
+
+```{r, fig.width = 6, fig.height = 5}
+varImpPlot(fish.rf)
+```
+
+Notice there is some basic agreement between the accuracy and Gini lists. The first 2 variables are the same, and then the next 3 are the same (different order but the same). Basically here there are 2 gaps to consider, after the first 2 from the Gini plot, and after the first 5 from the accuracy plot. These suggest you may want to use either 2 or 5 variables when you try other methods.  Remember, this is a measure of importance based on trees for the forests and creating hypercubes. Just because a variable is important here does not mean it will be important for another method. (It is, however, often better than no guidance at all). 
+
+## Example 2: Olive  
+
+For tackling forests, we want to again set a seed to make our work reproducible. It doesn't need to be the same seed number as above.
+
+```{r}
+set.seed(240)
+olive.rf <- randomForest(Area ~ ., data = olive2, mtry = 3, ntree = 500, importance = T, proximity = T)
+olive.rf
+```
+
+There are two things to note here. First, remember that the OOB confusion matrix is giving you the estimated TER. Note that we converted Area to a factor when we first loaded the data set, so R is doing a classification RF, not regression (you can do that for numeric responses if you have them).  
+
+To get the AER, we make a different table:
+
+```{r}
+table(olive2$Area, predict(olive.rf, olive2))
+```
+
+The predict command is giving us the vector of predicted classes. We could save it as its own vector as we did with the tree predictions, or you could always mutate a data set and save this as a new variable to keep for reference.  
+
+Finally, we look at the size of the trees and variable importance plot for the olive data (classifying Area).
+
+```{r, fig.width = 6, fig.height = 5}
+hist(treesize(olive.rf))
+varImpPlot(olive.rf)
+```
+
+We don't see anything unusual in the tree size histogram. Note that with more observations and classes though, the trees here are bigger than those in the fish random forest. 
+
+For variable importance, the methods agree on the same 4 variables being important, but the order of the first 2 is different and we see different gaps depending on which measure is being used. If I wanted variables for another method, I'd probably use the top 3 shown in the Gini plot, since that is a clear gap with more than one variable indicated as important. 
+
+
+## Bagging  
+
+Bagging is simply a special case of a random forest with mtry = $p$, the number of possible predictor variables. This is easily run by just setting the mtry option appropriately. Here I demo it on the fish data. Again, this is just a special case of a random forest (though it came first), and it has a special name. 
+
+```{r, fig.width = 6, fig.height = 5}
+set.seed(240)
+fish.bag <- randomForest(Species ~ ., data = fish, mtry = 9, ntree = 500, importance = T, proximity = T)
+fish.bag  
+table(fish$Species, predict(fish.bag, fish))
+hist(treesize(fish.bag))
+varImpPlot(fish.bag)
+```
+
+The bagging AER is 0% (from the confusion matrix) and the estimated TER via the OOB error rate is 2.03%, slightly better than the random forest. Bagging isn't always better, but it can be. Why?
+
+By allowing all variables to be considered at each split, the trees in the forest are "greedy", just like the individual tree. The only real change is making many trees with different bootstrap samples to try to overcome some of the tree instability. 
+
+
+# Boosting  
+
+Boosting is built upon the ideas of decision trees, but is not a special case of a random forest. It takes almost an opposite approach. Boosting is designed to learn slowly - building a large number of very small trees, in sequence, each trying to improve on the previous one (trying to fix mistakes or for regression, improve the residuals). And, each tree depends on the tree before it, which is completely different from a random forest. So it's a tree-based method, but very different from random forests. 
+
+In the context of regression, you could think of boosting as building small trees that continually try to improve predictions by working with the residuals. For classification, it's trying to build "better" nodes (in terms of some impurity measure) by focusing on where it makes mistakes and trying to improve there with another tree. 
+
+Boosting can do well for prediction, but is highly dependent (way more sensitive than random forests) on the selection of three tuning parameters, which are:  
+1.  The number of trees, $B$. 
+2.  The shrinkage parameter. Generally, smaller values here require a larger number of trees. 
+3.  The complexity of each tree, controlled by $d$ the number of splits per tree. 
+
+CASI describes some important connections between shrinkage and the learning rate and also between the tree complexity and how the model being created allows interactions (or not) between variables. 
+
+To fit boosting, there are many packages that R has available, Here, the *gbm* package is demo-ed first. We demonstrate it on the fish data set.
+
+Boosting doesn't use the bootstrap, nor does it have CV included, so it's wise to use a train/test split here, and you should do this with just regular trees too. (As an example of learning how other packages could be useful, *caret* has a *createDataPartition* function that creates training and test splits stratified by class, to preserve the class distribution.) Recall we created these data sets previously, and checked to be sure that we didn't miss the white class. 
+
+The distribution for a multi-class response is "multinomial" but if you only had 2 responses (or reduced the problem to working with 2 classes), you would use the "bernoulli" option for the distribution. 
+
+NOTE: Apparently, using this R function *gbm* for boosting with a multi-class response now throws a warning. This appears to be due to some problems and lack of upkeep on those functions (though I couldn't find major details online). I still run it here for this example, but be careful for projects if you use it. There are other boosting algorithms available in R, but this is the package demo-ed in ISLR. If you have a binary response, there is a different distribution to use. (Think: what could that be?)
+
+```{r, warning = FALSE, message = FALSE}
+set.seed(240)
+fish.boost <- gbm(Species ~ ., data = fish_train, 
+                   distribution = "multinomial", 
+                   n.trees = 5000, 
+                   interaction.depth = 2,
+                   shrinkage = 0.1) #n.trees = B, interaction.depth = d 
+```
+
+The `summary()` function produces a relative influence plot and also outputs
+the relative influence statistics:
+
+```{r, fig.width = 6, fig.height = 6}
+summary(fish.boost)
+```
+
+We see that L32 is the most important variable by far, followed by Height before a big gap to L21 and Width. 
+
+Now let's use the boosted model to predict Species on the test set:
+
+```{r}
+boost_estimate <- predict(fish.boost, 
+                         newdata = fish_test, 
+                         n.trees = 5000, type = "response")
+```
+
+Unlike previous predict functions where we had the option to get predicted classes out by setting type correctly, this predict function gives us probabilities of each class for each observation in the test set. We need to take the max, and set that to be the class prediction for that observation ourselves.  We can do that with:
+
+```{r}
+pred_fish <- apply(boost_estimate, 1, which.max)
+tally(~ pred_fish)
+table(fish_test$Species, pred_fish)
+```
+
+There are 2 errors out of 37 fish in the test set.
+
+```{r}
+2/37
+```
+
+We can get the AER similarly, just run the prediction on the training data set, and follow the same steps to get the confusion matrix. 
+
+```{r}
+boost_estimate2 <- predict(fish.boost, 
+                         newdata = fish_train, 
+                         n.trees = 5000, type = "response")
+pred_fish2 <- apply(boost_estimate2, 1, which.max)
+tally(~ pred_fish2)
+table(fish_train$Species, pred_fish2)
+```
+
+The AER is 0%. 
+
+## Example 2: Olive
+
+Briefly, we show the code and output for bagging and boosting on the olive data set with a few different parameter choices for boosting.
+
+Bagging is first.
+
+```{r, fig.width = 6, fig.height = 5}
+set.seed(240)
+olive.bag <- randomForest(Area ~ ., data = olive2, mtry = 8, ntree = 500, importance = T, proximity = T)
+olive.bag  
+table(olive2$Area, predict(olive.bag, olive2))
+hist(treesize(olive.bag))
+varImpPlot(olive.bag)
+```
+
+Next we try boosting.
+
+```{r, fig.width = 6, fig.height = 6}
+set.seed(240)
+olive.boost <- gbm(Area ~ . - Region, data = olive_train, 
+                   distribution = "multinomial", 
+                   n.trees = 2000, 
+                   interaction.depth = 3,
+                   shrinkage = 0.01) #n.trees = B, interaction.depth = d 
+summary(olive.boost)
+boost_estimate <- predict(olive.boost, 
+                         newdata = olive_train, 
+                         n.trees = 2000, type = "response")
+pred_olive <- apply(boost_estimate, 1, which.max)
+tally(~ pred_olive)
+table(olive_train$Area, pred_olive) #AER
+boost_estimate2 <- predict(olive.boost, 
+                         newdata = olive_test, 
+                         n.trees = 2000, type = "response")
+pred_olive2 <- apply(boost_estimate2, 1, which.max)
+tally(~ pred_olive2)
+table(olive_test$Area, pred_olive2) #estimated TER
+```
+
+There are fewer trees used here, but they are bigger (as shown with the interaction depth), and there is a slower learning rate. 
+
+## Alternative Boosting package
+
+Due to the issues with the gbm package, I decided to look for an alternative example for us, using a different boosting package, *xgboost*. This code is based on an R bloggers post (on a different data set). 
+
+Even though the Species variable is already a factor, it wants it converted to numeric, and wants it to start at 0. 
+
+```{r}
+# setup - wants train/test splits with predictors and responses separate
+fish_train2 <- select(fish_train, -Species)
+fish_test2 <- select(fish_test, -Species)
+
+y_train <- as.integer(fish_train$Species) - 1
+y_test <- as.integer(fish_test$Species) - 1
+
+# requires a special format for the data
+xgb_train <- xgb.DMatrix(data = as.matrix(fish_train2), label = y_train)
+xgb_test <- xgb.DMatrix(data = as.matrix(fish_test2), label = y_test)
+
+# Set parameters for boosting
+xgb_params <- list(
+  booster = "gbtree",
+  eta = 0.01,
+  max_depth = 8,
+  gamma = 4,
+  subsample = 0.75,
+  colsample_bytree = 1,
+  objective = "multi:softprob",
+  eval_metric = "mlogloss",
+  num_class = length(levels(fish_train$Species))
+)
+
+```
+
+Now we can fit the model. Note - this will take some time to run. You could consider caching the results to aid in compiling, etc. 
+
+```{r, cache = TRUE}
+xgb_model <- xgb.train(
+  params = xgb_params,
+  data = xgb_train,
+  nrounds = 5000,
+  verbose = 1
+)
+xgb_model
+```
+
+Printing the model object and calling summary aren't that useful in terms of providing information (other than to check what you ran). To check out how the model does, we have to get predictions.
+
+```{r}
+xgb_preds <- predict(xgb_model, as.matrix(fish_test2), reshape = TRUE)
+xgb_preds <- as.data.frame(xgb_preds)
+colnames(xgb_preds) <- levels(fish_test$Species)
+xgb_preds
+```
+
+Note this is like the output above - we need to find the class with maximal probability as our prediction. For example, the first test fish should be a bream, at least based on our prediction. We showed a way to do this above, but here is how the blog entry worked with it:
+
+```{r}
+xgb_preds$PredictedClass <- apply(xgb_preds, 1, function(y) colnames(xgb_preds)[which.max(y)])
+xgb_preds$ActualClass <- levels(fish_test$Species)[y_test + 1]
+xgb_preds
+
+# to make the confusion matrix
+tally(ActualClass ~ PredictedClass, data = xgb_preds)
+```
+
+As you can see, this looks different in syntax than the *gbm* approach, and there are even more packages out there that do boosting. 
+
+## ROC and AUC  
+
+We've used misclassification rates as our way of evaluating these solutions, for the most part. Other methods exist including using receiver operating characteristic (ROC) curves and their associated area under the curve (AUC) when working with binary responses (or treating each class as itself versus all the rest). You can learn about these more [here](https://cran.r-project.org/web/packages/pROC/pROC.pdf).
+
+There are many other packages we could explore for classification evaluation measures. These include pROC (referenced above for the ROC curves), and caret (which has a lot of diagnostics available), as previously mentioned. 
+
+
+## R Bloggers Reference
+
+[Blog entry](https://www.r-bloggers.com/2021/02/machine-learning-with-r-a-complete-guide-to-gradient-boosting-and-xgboost/)
+

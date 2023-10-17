@@ -56,7 +56,29 @@ The data set contains the following variables:
 You should create a training/test split for use in model evaluation below. 
 
 ```{r}
+credit <- na.omit(credit)
 
+set.seed(495)
+n <- nrow(credit)
+train_index <- sample(1:n, (2/3) * n)
+test_index <- setdiff(1:n, train_index)
+
+train <- credit[train_index, ] 
+test <- credit[test_index, ]
+
+#further set up for using glmnet
+x_train <- model.matrix(DebtRatio ~ ., train)[, -1]
+x_test <- model.matrix(DebtRatio ~ ., test)[, -1]
+
+y_train <- train %>%
+  select(DebtRatio) %>%
+  unlist() %>%
+  as.numeric()
+
+y_test <- test %>%
+  select(DebtRatio) %>%
+  unlist() %>%
+  as.numeric()
 ```
 
 
@@ -66,7 +88,16 @@ You should create a training/test split for use in model evaluation below.
 Use a regression tree to predict DebtRatio. How well does the tree do? Try out some of the tree control options. 
 
 ```{r}
+debtratio.rpart <- rpart(DebtRatio ~ . , data = credit, method = "anova") #method = "anova" for regression 
+printcp(debtratio.rpart)
 
+#one tree
+rpart.plot(debtratio.rpart)
+
+# example tree written to pdf using other "pretty" function for tree
+pdf("debtratio.pdf", width = 14, height = 14)
+plot(as.party(debtratio.rpart)) # could sub in rpart.plot line here instead
+dev.off()
 ```
 
 
@@ -75,15 +106,31 @@ Use a regression tree to predict DebtRatio. How well does the tree do? Try out s
 Use poisson regression to predict the NumberOfOpenCreditLinesAndLoans. Is the overall model useful?
 
 ```{r}
-
+creditmod <- glm(NumberOfOpenCreditLinesAndLoans ~ ., data = credit, family = poisson (link = log))
+msummary(creditmod)
+lrtest(creditmod)
 ```
+
+p-value: < 2.2e-16, yes useful.
 
 ### Question 3
 
 Use logistic regression and a classification tree to predict SeriousDlqin2yrs. This was the original Kaggle challenge. How do the models compare? How well is each doing? Which do you prefer?
 
 ```{r}
+logmod <- glm(SeriousDlqin2yrs == "1" ~ ., family = binomial, 
+  data = credit)
+msummary(logmod)
+```
 
+```{r}
+dlq.rpart <- rpart(SeriousDlqin2yrs ~ ., method="class", data = credit)
+printcp(dlq.rpart)
+pdf("dlq.pdf", width = 14, height = 14)
+plot(as.party(dlq.rpart))
+dev.off()
+
+rpart.plot(dlq.rpart)
 ```
 
 

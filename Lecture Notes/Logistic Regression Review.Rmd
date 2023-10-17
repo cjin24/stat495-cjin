@@ -47,6 +47,7 @@ Other visualizations should be undertaken to understand the variables in the dat
 ggplot(mydata, aes(x = as.factor(InMichelin), y = Food)) +
   geom_boxplot() +
   labs(x = "In Michelin?")
+
 ```
 
 What does this plot suggest about whether Food should be included in the model at a first pass?
@@ -71,19 +72,9 @@ Would this plot raise any concerns for you? What concerns?
 
 ### Conditions for Logistic Regression
 
-Do you recall the conditions for logistic regression?
-
-- binary response, independent, random, linear (preidctors have linear relationship with $logit(\pi)$)
-
-Write down the logistic model.
-
-$\pi = P(success)$
-
-$logit(\pi) = log(\frac{\pi}{1-\pi}) = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + ... + \beta_k x_k$ (no + error)
-
+Do you recall the conditions for logistic regression?   
+Write down the logistic model.  
 Where are the errors in your model?  
-
-Randomness comes in in "spinner" model -- responses follow Bernoulli distribution
 
 You can make empirical logit plots using the function provided (requires a numeric response) in the Stat2Data package. Remember, you can change the number of breaks. 
 
@@ -167,7 +158,7 @@ Really, about 45% ended up in the guide, so at least we aren't predicting a very
 
 It is possible to find the fitted values so skewed that say, none of them are over 50%, or maybe only 8% are over 50% but the data shows 20% in that group. We can use the data's percentage to alter our cutoff (this is done more appropriately with a training/test data set, but here it is for illustration). 
 
-If we made no adjustment, this is what we would get (confusion matrix):
+If we made no adjustment, this is what we would get:
 
 ```{r}
 with(logm2augment, table(InMichelin, binprediction))

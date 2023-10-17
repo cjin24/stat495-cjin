@@ -1,0 +1,343 @@
+---
+title: "Stat 495 - Chapter 8 Practice - Example Solution"
+author: "A.S. Wagaman"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+
+```{r, include = FALSE}
+library(mosaic)
+library(rpart)
+library(partykit) #check out options!
+library(rpart.plot) #check out options!
+library(GGally)
+library(lmtest) # for likelihood ratio tests
+library(broom)
+library(pROC)
+```
+
+Now it's your turn to practice with GLMs and regression trees. The idea is to practice the methods and interpreting the results. You can pursue the questions below in any order, after doing Question 0, but may want to consult with others around you so you can assist each other. 
+
+### Data Set
+
+For these problems we will be working with the Give Me Some Credit data set hosted by Kaggle. Reference for data: https://www.kaggle.com/c/GiveMeSomeCredit/data. The site doesn't list much other information on sources for the data. 
+
+We are only using a (random) subset of the training data set (20% is 30000 observations), so as not to bog down our computers. 
+
+```{r}
+credit <- read.csv("https://awagaman.people.amherst.edu/stat495/creditsample.csv", header = T)
+credit <- select(credit, -X) #remove row indices
+```
+
+You may opt to use rename to shorten the names of some the variables. 
+
+The data set contains the following variables:
+
+* SeriousDlqin2yrs - Person experienced 90 days past due delinquency or worse - Y/N  
+* RevolvingUtilizationOfUnsecuredLines - Total balance on credit cards and personal lines of credit except real estate and no installment debt like car loans divided by the sum of credit limits -	percentage  
+* age	- Age of borrower in years	- integer  
+* NumberOfTime30-59DaysPastDueNotWorse	- Number of times borrower has been 30-59 days past due but no worse in the last 2 years -	integer  
+* DebtRatio -	Monthly debt payments, alimony,living costs divided by monthly gross income -	percentage  
+* MonthlyIncome -	Monthly income -	real  
+* NumberOfOpenCreditLinesAndLoans -	Number of Open loans (installment like car loan or mortgage) and Lines of credit (e.g. credit cards) -	integer  
+* NumberOfTimes90DaysLate -	Number of times borrower has been 90 days or more past due -	integer
+* NumberRealEstateLoansOrLines -	Number of mortgage and real estate loans including home equity lines of credit -	integer * NumberOfTime60-89DaysPastDueNotWorse -	Number of times borrower has been 60-89 days past due but no worse in the last 2 years -	integer  
+* NumberOfDependents -	Number of dependents in family excluding themselves (spouse, children etc.) -	integer  
+
+
+### Question 0
+
+You should create a training/test split for use in model evaluation below. 
+
+I chose to use a 70/30 split. With an $n$ of 30000, even 90/10 would probably be fine. The one challenge you'll see is encountered in Question 3, due to extremely unbalanced class distributions, it can be dangerous if the test set is too small and misses the minority class. 
+
+```{r}
+set.seed(495) 
+n <- nrow(credit)
+train_index <- sample(1:n, 0.7 * n)
+test_index <- setdiff(1:n, train_index)
+
+train <- credit[train_index, ] 
+test <- credit[test_index, ]
+```
+
+
+
+### Question 1
+
+Use a regression tree to predict DebtRatio. How well does the tree do? Try out some of the tree control options.
+
+```{r}
+ggplot(data = train, aes(x = DebtRatio)) + geom_density()
+ggplot(data = train, aes(x = DebtRatio)) + geom_histogram()
+favstats(~ DebtRatio, data = train)
+```
+
+The distribution of the response is extremely right-skewed, we might want to log it to see if predictions get better later.
+
+```{r}
+# Remember method = "anova" for regression 
+credit.rpart <- rpart(DebtRatio ~ . , data = train, method = "anova") 
+printcp(credit.rpart)
+pdf("credit.pdf", width = 14, height = 14)
+plot(as.party(credit.rpart))
+dev.off()
+
+# plotting option! (Can also send this to the pdf instead)
+# remove the as.party - that's partykit
+rpart.plot(credit.rpart)
+```
+
+This was a tree fit with the default stopping criteria. 
+
+```{r}
+train2 <- mutate(train, fittedtreetrain = predict(credit.rpart))
+```
+
+We could then calculate the MSE on the training data set. Note that I added the fitted values to a new data set for convenience here.
+
+```{r}
+mean((train2$fittedtreetrain - train2$DebtRatio)^2)
+```
+
+What about the test MSE?
+
+```{r}
+test2 <- mutate(test, fittedtreetest = predict(credit.rpart, newdata = test))
+mean((test2$fittedtreetest - test2$DebtRatio)^2)
+```
+
+Clearly this is higher than the training MSE, but it also turns out here that some of the extreme DebtRatio outliers ended up in the test set. 
+
+
+We can try using the log of the response to see if that seems better. Note that this changes the scale of the response, so MSEs wouldn't be directly comparable between the two models. 
+
+```{r}
+#method = "anova" for regression 
+credit.rpart2 <- rpart(log(DebtRatio+0.000001) ~ . , data = train, method = "anova") 
+printcp(credit.rpart2)
+pdf("credit2.pdf", width = 14, height = 14)
+plot(as.party(credit.rpart2))
+dev.off()
+```
+
+This was a tree fit with the default stopping criteria. 
+
+```{r}
+train2 <- mutate(train2, fittedtreetrain2 = predict(credit.rpart2))
+```
+
+We could then calculate the training MSE. Note that I added the fitted values to a new data set for convenience here.
+
+```{r}
+mean((train2$fittedtreetrain2 - log(train2$DebtRatio+0.000001))^2)
+```
+
+We could compare this to the original by transforming the values back. We predicted logDebtRatio slightly modified so just work backwards:
+
+```{r}
+train2 <- mutate(train2, traintree2pred = exp(fittedtreetrain2)-0.000001)
+mean((train2$fittedtreetrain - train2$DebtRatio)^2)
+mean((train2$traintree2pred - train2$DebtRatio)^2)
+```
+
+It appears that we are doing slightly worse with the log transformed tree, even on the training set, so I won't worry about it on the test set.  
+
+```{r}
+ggplot(data = train2, aes(x = fittedtreetrain)) + geom_histogram()
+ggplot(data = train2, aes(x = traintree2pred)) + geom_histogram()
+ggplot(data = train2, aes(x=fittedtreetrain, y=traintree2pred)) + geom_point()
+```
+
+There are only so many predicted values for each tree, so perhaps bigger trees could do better?
+
+
+I will try a few different control options now.
+
+```{r}
+credit.control <- rpart.control(minsplit = 500, minbucket = 200, xval = 20, cp = 0.001)
+#method = "anova" for regression
+credit.rpart3 <- rpart(log(DebtRatio+0.000001) ~ . , data = train,
+                method = "anova", control = credit.control)  
+printcp(credit.rpart3)
+pdf("credit3.pdf", width = 14, height = 14)
+plot(as.party(credit.rpart3))
+dev.off()
+```
+
+This results in a much bigger tree. But does it help with our MSE?
+
+```{r}
+train2 <- mutate(train2, fittedtreetrain3 = predict(credit.rpart3))
+```
+
+We could then calculate the MSE. Note that I added the fitted values to a new data set for convenience here.
+
+```{r}
+mean((train2$fittedtreetrain3 - log(train2$DebtRatio+0.000001))^2)
+```
+
+The previous tree gave 13.90 for the training MSE here, so this is a drop but the tree is much more complicated. 
+
+If you transform back, the first model is still better, so maybe bigger trees should be tried with the untransformed response. You can explore quite a bit here, but just be sure you can fit a tree. 
+
+
+### Question 2
+
+Use poisson regression to predict the NumberOfOpenCreditLinesAndLoans. Is the overall model useful?
+
+What does this response variable look like?
+
+
+```{r}
+ggplot(data = train, aes(x = NumberOfOpenCreditLinesAndLoans)) + geom_histogram()
+ggplot(data = train, aes(x = NumberOfOpenCreditLinesAndLoans)) + geom_density()
+favstats(~ NumberOfOpenCreditLinesAndLoans, data = train)
+```
+
+
+```{r}
+poismod <- glm(NumberOfOpenCreditLinesAndLoans ~ . , data = train,
+               family = poisson (link = log))
+msummary(poismod)
+lrtest(poismod)
+
+augcredit <- augment(poismod, type.predict = "response")
+```
+
+
+Without doing any model selection, we do find a significant model overall. We can probably remove a few variables and have a slightly simpler model. 
+
+If we wanted to compute the training MSE, we could do that, once we get the predicted values on the scale of the response.
+
+```{r}
+mean((augcredit$.fitted - augcredit$NumberOfOpenCreditLinesAndLoans)^2)
+```
+
+On the test set, it's a little more complicated, due to the NA values. 
+
+```{r}
+test4 <- mutate(test, fitted = predict(poismod, newdata = test, type = "response"))
+test4 <- filter(test4, fitted != "NA")
+mean((test4$fitted - test4$NumberOfOpenCreditLinesAndLoans)^2)
+```
+
+Again, this is hard to interpret without having a reference to some other model. 
+
+
+
+### Question 3
+
+Use logistic regression and a classification tree to predict SeriousDlqin2yrs. This  was the original Kaggle challenge. How do the models compare? How well is each doing? Which do you prefer?
+
+```{r}
+serious.rpart <- rpart(SeriousDlqin2yrs ~ . , data = train, method = "class") 
+printcp(serious.rpart)
+pdf("serious.pdf", width = 14, height = 14)
+plot(as.party(serious.rpart))
+dev.off()
+```
+
+
+```{r}
+train3 <- mutate(train, predserious = predict(serious.rpart, type="class")) 
+tally(predserious ~ SeriousDlqin2yrs, data = train3)
+tally(~ SeriousDlqin2yrs, data = train3)
+```
+
+This is not doing very well.  The challenge here is that even out of the total data set, only 1963 out of 30000 were delinquent, and in our training set, we have just 1368 of those. So, just by predicting majority class, we can be correct for 28037 out of 30000 observations. That's 93.46% accurate. On the training set, it would be 19632/21000 which is roughly 93.49% accurate. 
+
+The tree improves a tiny bit to 93.74% on the training set, but that's not a big change from just using majority class from the outset. 
+
+```{r}
+1 - 0.065143*0.96053 #to compute based on the root node error and relative error reported. 
+```
+
+We could also get the xerror rate (via CV), and could have run this on the entire data set, not just the training data.
+
+On the test data, we find that we make (487+99) = 586 errors out of the 9000 observations, which is 93.49% accurate, basically matching the performance on the training set. 
+
+```{r}
+test3 <- mutate(test, predserious = predict(serious.rpart, type="class", newdata = test)) #or vector
+tally(predserious ~ SeriousDlqin2yrs, data = test3)
+tally(~ SeriousDlqin2yrs, data = test3)
+```
+
+When you have a small class, it can be very hard to do predictions. There isn't much relative data to "learn" from. One of my prior thesis students studied this problem, which is referred to as unbalanced data, to try to learn about / figure out ways to improve predictions for the minority class. 
+
+Now we examine the logistic regression.
+
+```{r}
+logmod <- glm(SeriousDlqin2yrs ~ . , data = train, family = "binomial")
+msummary(logmod)
+lrtest(logmod)
+```
+
+We can see that the overall model is significant, and that the two predictors used in the tree appear as significant predictors (along with some others). 
+
+If we want to make predictions here, we need to bin the fitted values.
+
+```{r}
+auglogcredit <- augment(logmod, type.predict = "response")
+```
+
+Notice that some of the observations were removed due to missing values. 
+
+```{r}
+favstats(~ .fitted, data = auglogcredit)
+```
+
+We could use 0.5 as our cutoff (by default). 
+
+```{r}
+auglogcredit <- mutate(auglogcredit, binprediction = round(.fitted, 0))
+tally(~ binprediction, data = auglogcredit)
+```
+
+It classifies most as 0, and only 0.38 percent as delinquent. We know that's too low. 
+
+```{r}
+65/(16771+65)
+```
+
+So, we could lower the cutoff to something that would more closely match our training data (or overall data). 
+
+```{r}
+tally(~ SeriousDlqin2yrs, data = auglogcredit)
+1153/(1153+15683)
+with(auglogcredit, quantile(.fitted, 1-0.0685)) #get appropriate quantile
+auglogcredit <- mutate(auglogcredit, binprediction2 = as.numeric(.fitted > 0.1251383))
+tally(~ binprediction2, data = auglogcredit)
+1154/(1154+15682)
+```
+
+This is about the right percentage of delinquent accounts. Now, we can see how well the predictions do.
+
+```{r}
+with(auglogcredit, table(SeriousDlqin2yrs, binprediction2))
+(14869+340)/(14869+340+814+813)
+```
+
+We are 90% correct. Bear in mind that by predicting majority class we could be 93.16 percent correct.
+
+So, this model is not doing a good job at making predictions, even on the training set. We could check the test set rates using predict and using the cutoff we've settled on, but given the poor performance on the training set, that's not really necessary. It should be already clear that we don't prefer this model.  
+
+There is a lot more you can learn about here. For example, you can use ROC curves to assess the logistic regression model. You can read up on these if you like.
+
+```{r}
+predpr <- predict(logmod, type=c("response"))
+roccurve <- with(auglogcredit, roc(SeriousDlqin2yrs ~ predpr))
+plot(roccurve)
+print(roccurve)
+```
+
+This does not indicate a particularly great model. 

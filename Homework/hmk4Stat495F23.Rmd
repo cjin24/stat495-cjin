@@ -16,6 +16,19 @@ output:
 
 ```{r, include = FALSE}
 library(mosaic)
+library(ISLR)
+library(GGally)
+library(stats)
+library(leaps)
+library(ggrepel)
+library(glmnet)
+library(rpart)
+library(partykit) #check out options!
+library(rpart.plot) #check out options!
+library(GGally)
+library(lmtest) # for likelihood ratio tests
+library(broom)
+library(pROC)
 options(digits = 6)
 ```
 
@@ -51,6 +64,7 @@ For our analysis, we will use the King County, Washington (State) house sales da
 
 ```{r}
 kchouse <- read.csv("https://awagaman.people.amherst.edu/stat495/kc_house_data.csv", header = T)
+kchouse <- select(kchouse, -id, -date) # remove id, date variables
 ```
 
 A data dictionary taken from Kaggle is provided for your use (separate file). 
@@ -89,9 +103,181 @@ Be sure you understand how to read output for both GLMs and trees, as this is ma
 
 # If there is anything else you should do before fitting models,
 # do it here
+
+# original density distribution of response, price
+gf_dens(~ price, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Price")
+
+kchouse <- mutate(kchouse, log_price = log(price)) # log transform price
+kchouse <- mutate(kchouse, sqrt_price = sqrt(price)) # square-root transform price
+
+gf_dens(~ log_price, data = kchouse,
+              ylab = "Density",
+              xlab = "log(Price)")
+gf_dens(~ sqrt_price, data = kchouse,
+              ylab = "Density",
+              xlab = "log(Price)")
+favstats(~ log_price, data = kchouse)
 ```
 
+Since Price is very right-skewed, we perform a log-transform to achieve a more normally distributed outcome variable. (realized afterwards that a quantitative outcome is not what we're looking for)
+
+```{r}
+# make binary variable for Price > $500,000
+# make quantitative variables -> binary, since most observations are 0
+kchouse <- kchouse %>%
+  mutate(overhalfmil = ifelse(price > 500000, 1, 0), # 1=yes, 0=no
+         basement = ifelse(sqft_basement > 0, 1, 0),
+         renovated = ifelse(yr_renovated > 0, 1, 0),
+         log_sqft_living = log(sqft_living),
+         log_sqft_lot = log(sqft_lot),
+         log_sqft_above = log(sqft_above),
+         log_sqft_living15 = log(sqft_living15),
+         log_sqft_lot15 = log(sqft_lot15))
+
+# bar graph and tally for Price > 500000 frequency
+gf_bar(~ overhalfmil, data = kchouse,
+       ylab = "Frequency",
+       xlab = "Over $500,000")
+tally(~ overhalfmil, format = "percent", data = kchouse)
+kchouse <- select(kchouse, -price, -sqft_living, -sqft_lot, -sqft_above, -sqft_living15, -sqft_lot15, -sqft_basement, -yr_renovated) # drop original of transformed variables
+```
+
+``` {r}
+# density plots for quantitative variables
+gf_dens(~ bedrooms, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Bedrooms")
+gf_dens(~ bathrooms, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Bathrooms")
+gf_dens(~ log_sqft_living, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Living)")
+gf_dens(~ log_sqft_lot, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Loft)")
+gf_dens(~ floors, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Floors")
+gf_dens(~ log_sqft_above, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Above)")
+gf_dens(~ yr_built, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Year Built")
+gf_dens(~ lat, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Latitude")
+gf_dens(~ long, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Longitude")
+gf_dens(~ zipcode, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Zipcode")
+gf_dens(~ log_sqft_living15, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Living 15)")
+gf_dens(~ log_sqft_lot15, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Loft 15)")
+
+# bar graphs for qualitative variables
+gf_bar(~ waterfront, data = kchouse, 
+             ylab = "Frequency",
+             xlab = "Waterfront")
+gf_bar(~ view, data = kchouse, 
+             ylab = "Frequency",
+             xlab = "View")
+gf_bar(~ as.factor(condition), data = kchouse, 
+              ylab = "Density", 
+              xlab = "Condition")
+gf_bar(~ as.factor(grade), data = kchouse, 
+              ylab = "Density", 
+              xlab = "Grade")
+gf_bar(~ basement, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Basement")
+gf_bar(~ renovated, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Renovated")
+```
+
+Applying the log transform to predictor variables does make the model slightly more complicated to interpret, but for the sake of predictability, I'm choosing to push the variables to a normal distribution with more convenient spread. Although the the variable `sqft_basement` is left-skewed, we cannot apply the log transform because the values are 0 for some observations.
+
+For EDA, we consider the categorical variables with the as.factor() function to see how observations are distributed across levels. However, when fitting the model, I will treat these variables (view, condition, grade) as numerical ones, since they are progressive in a way and thus can be viewed quantitatively. I will also keep waterfront quantitative to let the model take in 0 or 1 and have a corresponding coefficient that covers the effect of this variable.
+
 \newpage
+
+```{r}
+# split data into training and test set
+set.seed(495)
+
+n <- nrow(kchouse)
+train_index <- sample(1:n, 0.75 * n)
+test_index <- setdiff(1:n, train_index)
+
+train <- kchouse[train_index, ]
+test <- kchouse[test_index, ]
+
+# construct different structure for LASSO and elastic-net
+x_train <- model.matrix(overhalfmil ~ . , train)[, -1]
+x_test <- model.matrix(overhalfmil ~ . , test)[, -1]
+y_train <- train %>%
+  dplyr::select(overhalfmil) %>%
+  unlist() %>%
+  as.numeric()
+y_test <- test %>%
+  dplyr::select(overhalfmil) %>%
+  unlist() %>%
+  as.numeric()
+```
+
+# Variable Selection
+
+```{r}
+# fit kitchen-sink model, check diagnostics, obtain test error
+ksmodel <- lm(overhalfmil ~ bedrooms + bathrooms + log_sqft_living + log_sqft_lot + floors + log_sqft_above + basement + renovated + yr_built + zipcode + log_sqft_living15 + log_sqft_lot15 + lat + long + waterfront + view + condition + grade, data = train)
+msummary(ksmodel)
+
+# doesn't make sense for logistic
+# kspred <- predict(ksmodel, newdata = test)
+# mean((kspred - test$overhalfmil)^2)
+# mplot(ksmodel, which = 1)
+# mplot(ksmodel, which = 2)
+
+houseStep <- MASS::stepAIC(ksmodel, trace = FALSE, direction = "both")
+houseStep$anova
+```
+
+At a cutoff of 0.05, the kitchen-sink model output shows that the variables bathrooms, log_sqft_lot, renovated, long, and waterfront, are not significant for predicting if price is over $500,000.
+
+Using the stepAIC() function to perform stepwise selection, we see that 4 variables are recommended to be removed from the kitchen-sink model.
+
+```{r}
+set.seed(495)
+cv.outl <- cv.glmnet(x_train, y_train, alpha = 1) # fit lasso model
+bestlaml <- cv.outl$lambda.min # select lambda that minimizes MSE bestlaml
+
+lasso_mod <- glmnet(x_train, y_train, alpha = 1)
+round(coefficients(lasso_mod, s = bestlaml), 3)
+```
+
+Using LASSO on the model drives the coefficients for bedrooms, zipcode, log_sqft_above to 0.
+
+We try an elastic-net model.
+
+```{r}
+set.seed(495)
+cv.outl <- cv.glmnet(x_train, y_train, alpha = 0.5) # fit elastic-net model
+bestlaml <- cv.outl$lambda.min # select lambda that minimizes MSE bestlaml
+
+lasso_mod <- glmnet(x_train, y_train, alpha = 0.5)
+round(coefficients(lasso_mod, s = bestlaml), 3)
+```
+
+I prefer the LASSO model, which includes fewer predictors.
 
 # GLM Model Fitting
 
@@ -101,11 +287,49 @@ Be sure you understand how to read output for both GLMs and trees, as this is ma
 
 # think ahead: what does a reader need to know to follow your model fitting process?
 # you may want to jot down notes for yourself that you'll need later!
+
+kslogmodel <- glm(overhalfmil ~ bedrooms + bathrooms + log_sqft_living + log_sqft_lot + floors + log_sqft_above + basement + renovated + yr_built + zipcode + log_sqft_living15 + log_sqft_lot15 + lat + long + waterfront + view + condition + grade, data = train, family = "binomial")
+msummary(kslogmodel)
+
+# eliminate variables based on lm, kitchen-sink, and LASSO output
+logmod <- glm(overhalfmil ~ bedrooms + log_sqft_living + floors + basement + yr_built + log_sqft_living15 + log_sqft_lot15 + lat + long + waterfront + view + condition + grade, data = train, family = "binomial")
+msummary(logmod)
+lmtest::lrtest(logmod)
 ```
+
+```{r}
+tally(~ overhalfmil, format = "percent", data = train)
+```
+
+We could get about 58.0914% right just by saying the prices are all not over $500,000.
+
+If we use a naive cutoff of 0.5 to make predictions, we get:
+
+```{r}
+logaug <- logmod %>%
+  # predict(newdata = test, type.predict = "response")
+  augment(type.predict = "response")
+logaug <- mutate(logaug, binprediction = round(.fitted, 0))
+
+tally(~ binprediction, data = logaug)
+
+6453/(6453+9744)
+```
+
+It’s predicting 39.84 percent of the observations are over $500,000. We make a confusion matrix from this.
+
+```{r}
+with(logaug, table(overhalfmil, binprediction))
+(8315+5346)/(8315+5346+1429+1107)
+```
+
+Overall, we are getting 84.34% correct. The logistic glm model does alright.
 
 \newpage
 
 # Tree Fitting
+
+Binary response, so we use method = "class."
 
 ```{r}
 # choose and fit at least 2 different, appropriate models for your tree
@@ -113,8 +337,34 @@ Be sure you understand how to read output for both GLMs and trees, as this is ma
 
 # think ahead: what does a reader need to know to follow your model fitting process?
 # you may want to jot down notes for yourself that you'll need later!
+
+# tree with variables eliminated by LASSO
+set.seed(495)
+kchouse.rpart <- rpart(overhalfmil ~ bathrooms + log_sqft_living + log_sqft_lot + floors + basement + renovated + yr_built + log_sqft_living15 + log_sqft_lot15 + lat + long + waterfront + view + condition + grade, method ="class", data = train, control = rpart.control(minbucket = 100, cp = 0, minsplit = 100))
+printcp(kchouse.rpart)
+rpart.plot(kchouse.rpart)
+
+# tree with variables eliminated based on lm, kitchen-sink, and LASSO output
+set.seed(495)
+kchouse.rpart2 <- rpart(overhalfmil ~ bedrooms + log_sqft_living + floors + basement + yr_built + log_sqft_living15 + log_sqft_lot15 + lat + long + waterfront + view + condition + grade, method ="class", data = train, control = rpart.control(minbucket = 100, minsplit = 200))
+printcp(kchouse.rpart2)
+rpart.plot(kchouse.rpart2)
 ```
 
+```{r}
+train2 <- mutate(train, predprice = predict(kchouse.rpart, type="class")) 
+tally(predprice ~ overhalfmil, data = train2)
+
+train3 <- mutate(train, predprice2 = predict(kchouse.rpart2, type="class")) 
+tally(predprice2 ~ overhalfmil, data = train3)
+
+tally(~ overhalfmil, data = train)
+
+(8455+5960)/(8455+5960+815+967)
+(8398+1253)/(8398+1253+1253+1024)
+```
+
+The bigger model, with variables eliminated by just LASSO, has a higher predictive success rate than the model containing fewer variables. I will play around with the minsplit and minbucket values more, cp too.
 
 \newpage
 

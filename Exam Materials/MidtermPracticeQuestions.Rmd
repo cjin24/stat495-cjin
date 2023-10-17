@@ -38,6 +38,7 @@ Verify that the Binomial distribution is an exponential family. Note, $X ~ Bin(n
 P(X=x|p) =(n \; \mbox{choose} \; x)p^x(1-p)^{n-x}. 
 \]
 
+
 ## Add 2
 
 Describe how to obtain a bootstrap distribution for a chosen statistic and obtain a (say) 95 percent confidence interval for its related parameter of interest. 
@@ -58,7 +59,6 @@ Using the Chapter 8 Lab data set for context, explain how to perform a permutati
 ```{r}
 credit <- read.csv("https://awagaman.people.amherst.edu/stat495/creditsample.csv", header = T)
 ```
-
 
 ## Add 6
 
