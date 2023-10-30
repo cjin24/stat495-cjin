@@ -1,6 +1,6 @@
 ---
 title: "Homework 5 - Stat 495"
-author: "YourNameGoesHere"
+author: "Cassandra Jin"
 date: "Due Friday, October 27th by midnight"
 output:
   pdf_document:
@@ -16,6 +16,15 @@ output:
 
 ```{r, include = FALSE}
 library(mosaic)
+library(rpart)
+library(partykit) #check out options!
+library(rpart.plot) #check out options!
+library(GGally)
+library(lmtest) # for likelihood ratio tests
+library(broom)
+library(pROC)
+library(Stat2Data)
+library(tree)
 options(digits = 6)
 ```
 
@@ -77,73 +86,299 @@ Your submission should include the following sections (along with all code neces
 * Your Model Comparison (can be woven in sections above)
 * Your Conclusion
 
-Descriptions of the purpose for each section follow. Do not use this as a set of check boxes for the assignment. Instead, the idea here is to explain why you'd write each section, and you can work out what needs to be in each in order to fulfill that purpose. 
-
-* Introduction - The real estate developer has interests, but will you be able to address them? How do you understand the tasks you are presented with? It's important to state what you will be doing in the analysis, so the reader can make sure their understanding lines up with what you will be doing. The reader also needs an introduction to your data, either in this section, or below. They need enough detail to be able to determine if your actions later in the analysis are reasonable. 
-
-* Exploratory Data Analysis - You are the analyst here. That means you can use variable transformations, subsets of observations, and employ other analytic practices (e.g. training/testing data sets) at your discretion to aid in your analysis, so long as you explain your rationale for them. The reader needs to know what you found and what you decided to do about it, because this has impacts on the rest of your analysis. Remember our lessons from the first classes - be sure you look at the data! Here's your chance to share what you found based on how it impacts your analysis. 
-
-* GLM and Tree sections - These are new techniques. By having each in their own section, you can focus on your explanation for them one at a time. The developer does not know what these are - you need to explain them at least enough they can follow your discussion. You have options that you need to pick for the different techniques (various tuning parameters) - for example, are you using a classification or a regression tree? What tree stopping options are being used? What input variables are you using and why? What type of GLM are you using? How will you be measuring performance? Be sure you discuss what options you are selecting and what made you choose those values. Helping explain this shows your understanding of the techniques (remember the class example that minbucket of 30 was nonsensical for the iris data). 
-
-You also want these sections to show off your ability to build models. It is not appropriate to only fit kitchen sink models or accept all default settings without exploring to see if that is really what is best for the task at hand. Your write-up should make it clear what you explored, but you don't have to show every model you considered. You can do a lot in sentences discussing your process. 
-
-Finally, remember to check out your "best" model for each technique. Did you check reasonable diagnostics? Does the model make sense? Are variables behaving as you expect? If you focus solely on model performance, that's missing the point. For example, you might find a model has very little error because a variant of the response was accidentally included as a predictor. You are responsible for checking over the model before reporting it. Your write-up should convey that you've done this (the reader can't read your mind to know you did it).
-
-* Model Comparison - There are several ways to compare the models - performance, interpretability, variables involved, etc. Remember you are trying to address the real estate developer's questions of interest. You may do that with a focus on just one model, or maybe you found a way to combine results from a "best" GLM and a "best" tree. The idea for this section is that you need to convey the process used to pick a final model(s) to use to answer those questions, with justification for your choices.  
-
-* Conclusion - This section should be a stand alone summary of your analysis. It is where you get to state your final model and a quick summary of the process used to get there. You also need to address the developer's questions (if not done before), and this is your last place to do that! Remember to flush out the details here. If your final sentence is "Model 5 is the model I choose and it answers your questions", does it? Are you doing your job as the analyst to leave things at that? For that matter, what is Model 5? 
-
-* Printing Trees - It is fine to print your trees out to separate .pdfs (just be sure to include them in your submission!). Remember if you want to include the .pdf as an image, you have example code for that. Please do show your code though (so no echo = FALSE), and remember that your work should be reproducible. The chapter 8 lab solution shows alternatives to *partykit* to make the trees look nice. You can try out *rpart.plot* yourself to see.  
-
-* Length - Your submission should be as long as it needs to be, but not unnecessarily long. Plots, etc. are encouraged to help illustrate points, but don't include output that isn't needed. For example, a histogram or densityplot and favstats for each variable is something good to explore, but you shouldn't put that in your submission for every variable. You might need plots to point out outliers you are removing, or maybe you show one plot and then say others were similar. I encourage you to do any additional work in a separate .Rmd from your submission (like, say, back in your Homework 4 .Rmd). 
-
-* Audience - For purposes of this submission, remember that the audience is the real estate developer, so you'll probably need to include some explanations that you'd leave out of a normal homework. For example, the developer isn't going to know what a GLM is, or what type you are using, or why you'd use it. You should think about where that information should go, and do your best to explain what you need in order to report your findings.  Similarly, assume that you found this data to assist the developer and they need basic details about it to understand the variables. They didn't hand it over to you. 
-
-You may remove these instructions if desired for your submission, but must leave the page on Academic Integrity.
-
 \newpage
 
 # Introduction 
 
+In today's dynamic real estate market, it is important to gain any insights possible into the intricate factors that might influence the sale prices of homes. Particularly, we have been tasked with providing comprehensive analysis of a data set of house sales in King County, Washington, with the goal of constructing a predictive model for when a house exceeds the threshold of half a million dollars based on certain property features.
 
-\newpage 
+The King County, Washington (State) house sales data set contains information on over 20,000 homes in the region, including details about their sale price, size, attributes, location, condition, and more. In order to understand which of these variables are individually appropriate to use for analysis, we will first perform exploratory data analysis on them and apply data transformations or completely eliminate uninformative variables. Then, to actually predict the binary response variable of whether or not a home sale price exceeds half a million dollars, we will build two models: a generalized linear model (GLM) and a decision tree model. The final GLM will include the full set of predictors and will output whether or not a predicted house price will be greater than $500,000. The decision tree model will offer a more visually-oriented map to follow to a conclusion based on the values of fewer input variables than the GLM. Thus, each model includes slightly different subsets of predictors but both offer large degrees of interpretability and accuracy in prediction. We will then go on to investigate the predictive power of the variables we choose to include with confusion matrices and more.
 
-# Exploratory Data Analysis 
+Through this report, we aim to equip the real estate developer with the necessary tools and insights to make informed decisions in the dynamic and competitive real estate market of this area in Washington.
 
-```{r, include = FALSE}
-# Can be included with the introduction
+\newpage
+
+# Exploratory Data Analysis
+
+```{r}
+# original density distribution of response variable, price
+gf_dens(~ price, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Price")
+
+kchouse <- kchouse %>%
+  # make binary variable for Price > $500000
+  mutate(overhalfmil = ifelse(price > 500000, 1, 0)) %>% # 1=yes, 0=no
+  # make binary variables for some quantitative ones, since most observations are 0
+  mutate(basement = ifelse(sqft_basement > 0, 1, 0),
+         renovated = ifelse(yr_renovated > 0, 1, 0)) %>%
+  # log-transform variables to fix skewness
+  mutate(log_sqft_living = log(sqft_living),
+         log_sqft_lot = log(sqft_lot),
+         log_sqft_above = log(sqft_above),
+         log_sqft_living15 = log(sqft_living15),
+         log_sqft_lot15 = log(sqft_lot15)) %>%
+  # drop pre-transformed variables
+  select(-price, -sqft_living, -sqft_lot, -sqft_above, -sqft_living15,
+         -sqft_lot15, -sqft_basement, -yr_renovated, -id, -date) %>%
+  # remove outlier where bedrooms = 33
+  subset(bedrooms != 33) %>%
+  # make binary variable for when condition = 5
+  mutate(condition5 = ifelse(condition == 5, 1, 0))
+
+# bar graph and tally for Price > $500000 frequency
+gf_bar(~ overhalfmil, data = kchouse,
+       ylab = "Frequency",
+       xlab = "Over $500,000")
+tally(~ overhalfmil, format = "percent", data = kchouse)
 ```
 
+```{r, fig.height = 6, fig.width = 5}
+# density plots for quantitative variables
+p1 <- gf_dens(~ bathrooms, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Bathrooms")
+p2 <- gf_dens(~ log_sqft_living, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Living)")
+p3 <- gf_dens(~ log_sqft_lot, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Lot)")
+p4 <- gf_dens(~ floors, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Floors")
+p5 <- gf_dens(~ log_sqft_above, data = kchouse, 
+              ylab = "Density", 
+              xlab = "log(Sq Ft Above)")
+p6 <- gf_dens(~ yr_built, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Year Built")
+
+# bar graphs for qualitative variables
+p7 <- gf_bar(~ as.factor(view), data = kchouse, 
+             ylab = "Frequency",
+             xlab = "View")
+p8 <- gf_bar(~ as.factor(condition), data = kchouse, 
+              ylab = "Density", 
+              xlab = "Condition")
+p9 <- gf_bar(~ as.factor(grade), data = kchouse, 
+              ylab = "Density", 
+              xlab = "Grade")
+p10 <- gf_bar(~ basement, data = kchouse, 
+              ylab = "Density", 
+              xlab = "Basement")
+
+# plot above plots in a grid
+cowplot::plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, ncol = 2)
+```
+
+Here, we have exploratory data analysis (EDA) for the response variable and only the predictors that will be included in the final GLM and decision tree model.
+
+We choose to apply the log transform to a few of the variables, which all exhibit extreme skewness. Doing so does make the model slightly more complicated to interpret, but for the sake of predictability, our choice to transform the variables and thus push them into more usable distributions with more convenient spread will allow the later model to be fit more reliably on the data (Note: although the the variable `sqft_basement` is left-skewed, we cannot apply the log transform because the values are 0 for some observations). Since `waterfront` and `renovated` have so many observations of one level and so few of the other, we may consider getting rid of them in the model fitting later on.
+
+Before diving into any analysis, it is preferred to have independent observations. But since our data set revolves around houses, many of which are likely in neighborhoods, we cannot be sure that we are working with independent observations of the response variable or any of the variables. However, it is still worth considering how fitted models of the complete, untouched data set may be able to help us predict whether or not a house costs over $500,000.
+
+To additionally prepare the data set for steps after we have constructed the models, we create a 0.75/0.25 training/test split. As the name suggests, the training set is used to train the model, and the testing set is then used to assess how well the model does by serving as "new," unseen data. This gives an estimate of how the model will perform in real-world scenarios, so we will be able to determine how many houses the GLM and decision tree model correctly predict to cost over $500,000.
+
+```{r}
+set.seed(495)
+n <- nrow(kchouse)
+
+# split data into training (0.75) and test (0.25) set
+train_index <- sample(1:n, 0.75 * n)
+test_index <- setdiff(1:n, train_index)
+train <- kchouse[train_index, ]
+test <- kchouse[test_index, ]
+```
 
 \newpage
 
 # GLM and Results
 
-```{r, include = FALSE}
-# Can be before or after your Tree
-# You should pick what you want to present first
+Here, we build a generalized linear model to perform logistic regression. The GLM is a useful model for this investigation because it extends the linear regression model to accommodate a broader range of data types and distributions, allowing us to consider predictor variables that are categorical, like the condition rating of a house observation and whether or not it is located on a waterfront.
+
+Upon checking the conditions for logistic regression, we find that most are satisfied. Specifically, one of the conditions is that the logit-transformed response probability (i.e. the log odds of response) must be linear relative to the predictors. Most of the variables satisfy this by demonstrating linear relationships in their empirical logit plots (not included), but the variable `yr_built` raises slight concern (shown below).
+
+```{r}
+# empirical logit plot
+emplogitplot1(overhalfmil ~ yr_built, ngroups = 5, data = kchouse)
 ```
+
+However, we first leave `yr_built` to see if it may be a significant predictor in the model, and we proceed with caution.
+
+We start with an initial kitchen-sink model, meaning that it contains all possible predictor variables for overhalfmil, our response variable of whether or not a house costs more than $500,000.
+
+```{r, warning = FALSE}
+# kitchen-sink logistic regression model
+kslogmodel <- glm(overhalfmil ~ bedrooms + bathrooms + log_sqft_living + log_sqft_lot +
+                    floors + log_sqft_above + basement + renovated + yr_built + zipcode +
+                    log_sqft_living15 + log_sqft_lot15 + lat + long + waterfront +
+                    as.factor(view) + as.factor(condition) + as.factor(grade),
+                  data = train, family = binomial(logit))
+msummary(kslogmodel)
+
+```
+
+```{r}
+# likelihood ratio test
+lrtest(kslogmodel)
+
+# stepAIC
+priceStep <- MASS::stepAIC(kslogmodel, trace = FALSE, direction = "both")
+priceStep$anova
+```
+
+Applying the likelihood ratio test to the kitchen-sink model, we find that the overall model is significant. But based on the output for this kitchen-sink logistic model, we can eliminate the variables `log_sqft_lot`, `renovated`, `long`, `grade`, and all `condition` levels besides 5, because the p-values of their regression coefficients are not significant. Running stepAIC on the model also results in `long` being left out, and using LASSO on the model drives the coefficients for bedrooms, zipcode, log_sqft_above to 0 (but this results in a lower rate of successful predictions).
+
+```{r}
+# reduced logistic model
+logmod <- glm(overhalfmil ~ bedrooms + bathrooms + log_sqft_living + floors +
+                log_sqft_above + basement + yr_built + zipcode + log_sqft_living15 +
+                log_sqft_lot15 + lat + waterfront + as.factor(view) + condition5,
+              data = train, family = binomial(logit))
+msummary(logmod)
+
+anova(logmod, kslogmodel, test="Chisq")
+```
+
+The anova table shows us that the reduced model is a more well-fitted model than the kitchen-sink model.
+
+```{r}
+logmaugment <- augment(kslogmodel, type.predict = "response")
+logmaugment <- mutate(logmaugment, binprediction = round(.fitted, 0))
+with(logmaugment, table(overhalfmil, binprediction))
+# proportion correctly predicted with kitchen-sink model
+(8276+5393)/(8276+5393+1119+1409)
+
+logmaugment <- augment(logmod, type.predict = "response")
+logmaugment <- mutate(logmaugment, binprediction = round(.fitted, 0))
+with(logmaugment, table(overhalfmil, binprediction))
+# proportion correctly predicted with reduced model
+(8108+5267)/(8108+5267+1287+1535)
+```
+
+Neither the kitchen-sink model nor the reduced model do a good job at making predictions, even on the training set, but we see that the kitchen-sink model predicts whether a house will be over $500,000 better than our reduced, since 0.844 > 0.826. For the sake of predictability, we proceed with the full kitchen-sink logistic model and check one more metric of fit.
+
+```{r}
+#***FUNCTION TO CALCULATE CONCORDANCE AND DISCORDANCE***#
+Association <- function(model)
+{
+  Con_Dis_Data <- cbind(model$y, model$fitted.values)
+  ones <- Con_Dis_Data[Con_Dis_Data[, 1] == 1, ]
+  zeros <- Con_Dis_Data[Con_Dis_Data[, 1] == 0, ]
+  conc <- matrix(0, dim(zeros)[1], dim(ones)[1])
+  disc <- matrix(0, dim(zeros)[1], dim(ones)[1])
+  ties <- matrix(0, dim(zeros)[1], dim(ones)[1])
+    for (j in 1:dim(zeros)[1])
+    {
+      for (i in 1:dim(ones)[1])
+      {
+        if (ones[i, 2] > zeros[j, 2])
+        {conc[j, i] = 1}
+        else if (ones[i, 2] < zeros[j, 2])
+        {disc[j, i] = 1}
+        else if (ones[i, 2] == zeros[j, 2])
+        {ties[j, i] = 1}
+      }
+    }
+  Pairs <- dim(zeros)[1]*dim(ones)[1]
+  PercentConcordance <- (sum(conc)/Pairs)*100
+  PercentDiscordance <- (sum(disc)/Pairs)*100
+  PercentTied <- (sum(ties)/Pairs)*100
+  return(list("Percent Concordance" = PercentConcordance, 
+              "Percent Discordance" = PercentDiscordance,
+              "Percent Tied" = PercentTied, "Pairs" = Pairs))
+}
+#***FUNCTION TO CALCULATE CONCORDANCE AND DISCORDANCE ENDS***#
+
+Association(kslogmodel)
+```
+
+Compared to a 50% likelihood of success from a coin flip, the model concordance being 92.8% indicates that the model fits reasonably well.
 
 \newpage
 
 # Tree and Results
 
-```{r, include = FALSE}
-# Can be before or after your GLM
-# You should pick what you want to present first
+Another method of predicting our response variable is building a decision tree. This is a graphical (and thus slightly easier to interpret) representation of a decision-making process, where each node of the tree represents a specific feature, and the branches that connect these nodes represent the possible outcomes of the decision. At the bottom leaf nodes of the tree, we arrive at the final predictions.
+
+In this context, we construct a classification tree (rather than regression), because we are trying to predict a binary outcome--the house price is either over $500,000 or it is not. First, we will try with the *tree* package.
+
+```{r}
+set.seed(495)
+
+tree_house <- tree(overhalfmil ~ bedrooms + bathrooms + log_sqft_living + log_sqft_lot +
+                     floors + log_sqft_above + basement + renovated + yr_built + zipcode +
+                     log_sqft_living15 + log_sqft_lot15 + lat + long + waterfront +
+                     as.factor(view) + as.factor(condition) + as.factor(grade), train)
+summary(tree_house)
 ```
 
+The output of `summary()` indicates that only a few of the many predictor variables have been used in constructing the tree. Next, we plot the tree.
 
-\newpage
-
-# Model Comparison
-
-```{r, include = FALSE}
-# Can be woven in sections above; doesn't have to be it's own section
+```{r}
+plot(tree_house)
+text(tree_house, pretty = 0)
 ```
 
+We use the `cv.tree()` function to see whether pruning the tree will improve performance.
+
+```{r}
+cv_house <- cv.tree(tree_house)
+plot(cv_house$size, cv_house$dev, type = 'b')
+```
+
+This plot shows that the full tree clearly has the lowest error, as it decreases all the way to the right end that has the largest-size model. If we instead use the rpart() function and start with the kitchen-sink model (as it proved to be most predictively effective in the GLM approach above) and apply a few control options, we have the following:
+
+```{r}
+set.seed(495)
+# kitchen-sink tree model
+kchouse.rpart <- rpart(overhalfmil ~ bedrooms + bathrooms + log_sqft_living +
+                         log_sqft_lot + floors + log_sqft_above + basement + renovated +
+                         yr_built + zipcode + log_sqft_living15 + log_sqft_lot15 + lat +
+                         long + waterfront + as.factor(view) + as.factor(condition) +
+                         as.factor(grade), method ="class", data = train)
+printcp(kchouse.rpart)
+rpart.plot(kchouse.rpart)
+
+# tree with variables eliminated by LASSO
+kchouse.rpart2 <- rpart(overhalfmil ~ bathrooms + log_sqft_living + log_sqft_lot +
+                          floors + basement + renovated + yr_built + log_sqft_living15 +
+                          log_sqft_lot15 + lat + long + waterfront + view + condition +
+                          grade, method ="class", data = train,
+                        control = rpart.control(minbucket = 100, cp = 0, minsplit = 100))
+printcp(kchouse.rpart2)
+rpart.plot(kchouse.rpart2)
+```
+
+```{r}
+# kitchen-sink tree model on training set
+train2 <- mutate(train, predhouse1 = predict(kchouse.rpart, type="class")) 
+tally(predhouse1 ~ overhalfmil, data = train2)
+(8398+5522)/(8398+5522+1024+1253)
+
+# on test set
+test2 <- mutate(test, predhouse2 = predict(kchouse.rpart, type="class", newdata = test))
+tally(predhouse2 ~ overhalfmil, data = test2)
+(2779+1865)/(2779+1865+345+411)
+
+# reduced tree model on training set
+train3 <- mutate(train, predhouse3 = predict(kchouse.rpart2, type="class")) 
+tally(predhouse3 ~ overhalfmil, data = train3)
+(8455+5960)/(8455+5960+815+967)
+
+# on test set
+test3 <- mutate(test, predhouse4 = predict(kchouse.rpart2, type="class", newdata = test)) 
+tally(predhouse4 ~ overhalfmil, data = test3)
+(2774+1999)/(2774+1999+350+277)
+```
+
+The kitchen-sink model with no control options predicts correctly 85.9% of the time on the training set, and 86% of the time on the test set. This is alright, but next we construct a tree that leaves out a few variables eliminated by LASSO (mentioned in the GLM section). When we also add control options for the minimum numbers of observations needed in starting and resulting nodes of the tree, as well as the extremely small Cp value of 0, the outputted tree is grown much more extensively, and we achieve a higher prediction rate of over 88% on both the training and the test set. Thus, for a well-performing classification tree, we include only the variables suggested by LASSO in our tree model *kchouse.rpart2*, along with some control parameters.
 
 \newpage
 
 # Conclusion
 
+Given a data set of house sales in King County, Washington, we were tasked with constructing a predictive model for when a house exceeds the threshold of half a million dollars based on certain property features. To do so, we built two models: a generalized linear model (GLM) and a decision tree model. The final GLM is a kitchen-sink model, meaning that it includes the full set of predictors. Because it contains so many variables, the final GLM is not necessarily simple to use or efficient, but given that our goal is to predict house sale price as accurately as possible, we choose the the full model which correctly predicts 84.4% of the time, compared to attempted GLM's with fewer variables (through summary output, LASSO, etc.) but with smaller accuracy rate as well. Using the full set of variables from this "best" GLM, we proceeded to construct a decision tree model. However, a smaller tree model proved to perform better than th. Our final classification tree model takes fewer input variables than our GLM, leaving out `bedrooms`, `zipcode`, `log_sqft_above` while predicting correctly at a rate of 88.4%. For performance, interpretability, as well as having fewer variables involved, we would recommend using the reduced classification tree model along the controls specified in the function.
+
+The following point was previously mentioned in the EDA section, but it is important to understand: the presence of neighborhoods means that we likely do not have independence among observations. To resolve this, a future direction we may consider . We could also merge this kchouse data set with others containing information on factors like income, educational resources, and more. This might uncover a relationship between our response variable and data that are easily accessible, which would in turn help to predict home price more effectively.

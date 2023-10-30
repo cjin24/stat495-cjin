@@ -29,6 +29,7 @@ library(GGally)
 library(lmtest) # for likelihood ratio tests
 library(broom)
 library(pROC)
+library(Stat2Data)
 options(digits = 6)
 ```
 
@@ -280,6 +281,26 @@ round(coefficients(lasso_mod, s = bestlaml), 3)
 I prefer the LASSO model, which includes fewer predictors.
 
 # GLM Model Fitting
+
+```{r}
+
+emplogitplot1(overhalfmil ~ bedrooms, data = kchouse)
+emplogitplot1(overhalfmil ~ bathrooms, data = kchouse)
+emplogitplot1(overhalfmil ~ log_sqft_living, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ log_sqft_lot, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ floors, data = kchouse)
+emplogitplot1(overhalfmil ~ log_sqft_above, ngroups = 5, data = kchouse)
+# emplogitplot1(overhalfmil ~ renovated, data = kchouse)
+emplogitplot1(overhalfmil ~ yr_built, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ zipcode, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ log_sqft_living15, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ log_sqft_lot15, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ lat, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ long, ngroups = 5, data = kchouse)
+# emplogitplot1(overhalfmil ~ waterfront, ngroups = 5, data = kchouse)
+emplogitplot1(overhalfmil ~ condition, data = kchouse)
+emplogitplot1(overhalfmil ~ grade, data = kchouse)
+```
 
 ```{r}
 # choose and fit at least 2 different, appropriate models for your GLM
