@@ -1,0 +1,131 @@
+---
+title: "Stat 495 - Chapter 19 Examples - SVMs"
+author: "A.S. Wagaman"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, include = FALSE} 
+library(mosaic) # for formula structure and tidyverse
+library(e1071) #svm
+```
+
+
+## Acknowledgments:  
+
+The fish data set example is based on notes from George Michailidis' Multivariate Data Analysis course, used with permission. 
+
+## Context:
+
+These examples were prepared for Stat 240: Multivariate Data Analysis in a Classification setting (i.e., not regression). 
+
+A section of notes discussing the basics of classification has been deleted. From that section, two acronyms were defined that are used below. Those are AER - apparent error rate - basically the error rate on your training set (overly optimistic), and estimated TER - estimated true error rate - basically the error rate from your test set (or from cross-validation or OOB samples). 
+
+
+# Data Sets 
+
+These data sets are used throughout: fish and olive (both online). Several packages are necessary for classification, so they've been loaded above. We preload the data sets.
+
+```{r}
+fish <- read.table("https://awagaman.people.amherst.edu/stat240/fish.txt", h = T)
+fish <- mutate(fish, Species = factor(Species))
+# add Length differencing variables to Fish
+fish <- mutate(fish, L21 = L2 - L1, L31 = L3 - L1, L32 = L3 - L2)
+olive <- read.table("https://awagaman.people.amherst.edu/stat240/olive.txt", h = T)
+olive <- mutate(olive, Area = factor(Area), Region = factor(Region))
+```
+
+I've tried to add notes for where in ISLR (Introduction to Statistical Learning by Witten et al. - pdf available through the library) these methods are covered, so you can refer there for details, etc. as you read. 
+
+We create training and test sets for each data set, though we won't need them for some of the methods which have automated CV options included. I used a 75-25 split.
+
+```{r}
+set.seed(240)
+n <- nrow(fish)
+train_index <- sample(1:n, 0.75 * n)
+test_index <- setdiff(1:n, train_index)
+
+fish_train <- fish[train_index, ] 
+fish_test <- fish[test_index, ]
+
+tally(fish$Species) #white is a small class
+tally(fish_train$Species) #checks that white is not missed in the training set
+
+set.seed(240)
+n2 <- nrow(olive)
+train_index2 <- sample(1:n2, 0.75 * n2)
+test_index2 <- setdiff(1:n2, train_index2)
+
+olive_train <- olive[train_index2, ] 
+olive_test <- olive[test_index2, ]
+```
+
+In the fish data set, I checked to make sure the white class was not dropped out of the training set because it is very small. For the olive data set, there aren't similar concerns about Region or Area, as there were many more observations and it would be unlikely to miss one.
+
+# SVM (Support Vector Machines)  
+
+Recap: The goal in an SVM is to find the separating hyperplane between classes with maximal distance between classes and the plane. You start with the original data set and think of it as ADDing variables (cubes, quadratics, interactions, sigmoid functions, tanh functions, etc.). The idea is that adding variables may let you find a better hyperplane in an even higher dimension than you started with or find one when there isn't one in a lower dimension. Think about this for a minute. It says that while we may not be able to visualize (in low D) a separation, a separation in higher dimensions might exist! The SVM solutions are linear boundaries in the new space - meaning with all variables added. Again, the SVM idea is somewhat counterintuitive because we usually like reducing dimension, but here the idea is to increase dimension to find a better separation.
+
+To run an SVM, you'll need to investigate options in the *e1071* package in R. The choice of kernel is important, as is the cost parameter, and you'll need to think about scaling again. 
+
+Here's a quick example with the fish data set:
+
+```{r}
+svm1 <- svm(Species ~ ., data = fish_train, gamma = 0.75, kernel = "radial")
+summary(svm1)
+svm1predtrain <- predict(svm1, fish_train)
+svm1predtest <- predict(svm1, fish_test)
+table(fish_train$Species, svm1predtrain) #get AER
+table(fish_test$Species, svm1predtest) #get estimated TER
+```
+
+And with the olive data set:
+
+```{r}
+svm2 <- svm(Area ~ ., data = select(olive_train, -Region), gamma = 0.75, kernel = "radial")
+summary(svm2)
+svm2predtrain <- predict(svm2, olive_train)
+svm2predtest <- predict(svm2, olive_test)
+table(olive_train$Area, svm2predtrain) #get AER
+table(olive_test$Area, svm2predtest) #get estimated TER
+```
+
+
+
+Those examples were both classification examples. Here, we implement one in the regression setting using the olive data set.
+
+Region and Area have a deterministic relationship, so we don't include Region - that info is technically there in Area. 
+
+```{r}
+svm3 <- svm(Stearic ~ ., data = select(olive_train, -Region), kernel = "linear")
+summary(svm3)
+svm3predtrain <- predict(svm3, olive_train)
+svm3predtest <- predict(svm3, olive_test)
+
+# Compute MSEs - one on training and one on test
+mean((olive_train$Stearic - svm3predtrain)^2)
+mean((olive_test$Stearic - svm3predtest)^2)
+
+#Compare to MSEs from kitchen sink LM
+ksmodel <- lm(Stearic ~ ., data = select(olive_train, -Region))
+kspredtrain <- predict(ksmodel, olive_train)
+kspredtest <- predict(ksmodel, olive_test)
+mean((olive_train$Stearic - kspredtrain)^2)
+mean((olive_test$Stearic - kspredtest)^2)
+```
+
+
+If we had a known nonlinear relationship (like if we simulated data where that was true), SVMs would way outperform the linear model. 
+
+
+
+
+

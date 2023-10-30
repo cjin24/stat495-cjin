@@ -1,0 +1,171 @@
+---
+title: "Stat 495 - Chapter 18 Examples - Neural Nets"
+author: "A.S. Wagaman"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, include = FALSE} 
+library(mosaic) # for formula structure and tidyverse
+library(nnet)
+library(NeuralNetTools)
+```
+
+
+Although I do not cover neural nets in Stat 240, I am going to continue to use the same examples as we had for random forests (and will see again for SVM), so this information is covered here again. 
+
+## Acknowledgments:  
+
+The fish data set example is based on notes from George Michailidis' Multivariate Data Analysis course, used with permission. 
+
+## Context:
+
+These examples were prepared for Stat 240: Multivariate Data Analysis in a Classification setting (i.e., not regression). 
+
+A section of notes discussing the basics of classification has been deleted. From that section, two acronyms were defined that are used below. Those are AER - apparent error rate - basically the error rate on your training set (overly optimistic), and estimated TER - estimated true error rate - basically the error rate from your test set (or from cross-validation or OOB samples). 
+
+
+# Data Sets 
+
+These data sets are used throughout: fish and olive (both online). Several packages are necessary for classification, so they've been loaded above. We preload the data sets.
+
+```{r}
+fish <- read.table("https://awagaman.people.amherst.edu/stat240/fish.txt", h = T)
+fish <- mutate(fish, Species = factor(Species))
+# add Length differencing variables to Fish
+fish <- mutate(fish, L21 = L2 - L1, L31 = L3 - L1, L32 = L3 - L2)
+olive <- read.table("https://awagaman.people.amherst.edu/stat240/olive.txt", h = T)
+olive <- mutate(olive, Area = factor(Area), Region = factor(Region))
+```
+
+I've tried to add notes for where in ISLR (Introduction to Statistical Learning by Witten et al. - pdf available through the library) these methods are covered, so you can refer there for details, etc. as you read. 
+
+We create training and test sets for each data set, though we won't need them for some of the methods which have automated CV options included. I used a 75-25 split.
+
+```{r}
+set.seed(240)
+
+n <- nrow(fish)
+train_index <- sample(1:n, 0.75 * n)
+test_index <- setdiff(1:n, train_index)
+
+fish_train <- fish[train_index, ] 
+fish_test <- fish[test_index, ]
+
+tally(fish$Species) #white is a small class
+tally(fish_train$Species) #checks that white is not missed in the training set
+
+set.seed(240)
+
+n2 <- nrow(olive)
+train_index2 <- sample(1:n2, 0.75 * n2)
+test_index2 <- setdiff(1:n2, train_index2)
+
+olive_train <- olive[train_index2, ] 
+olive_test <- olive[test_index2, ]
+```
+
+In the fish data set, I checked to make sure the white class was not dropped out of the training set because it is very small. For the olive data set, there aren't similar concerns about Region or Area, as there were many more observations and it would be unlikely to miss one.
+
+# Neural Nets in R
+
+First, there are many R packages that can be used for fitting neural nets. 
+
+This [paper](https://www.inmodelia.com/exemples/2021-0103-RJournal-SM-AV-CD-PK-JN.pdf) says there were over 80 packages for neural nets in spring of 2020. 
+
+We'll take a look at using *nnet* which does feedforward neural nets with a single hidden layer. You may also find some functionality with *NeuralNetTools* (used below).
+
+For more complicated models, you could investigate *keras*, *h2o*, or *tensorflow*. There is a lot you can learn here!
+
+
+## Catching Fish with A Neural Net
+
+One of the reasons I chose the *nnet* package to show you is that it uses our usual formula interface.
+
+It has many other options available, but only one other that must be specified in order for it to run (taking all others at defaults). This is the *size* option, and from the help file, you can see this is the number of units in the hidden layer. Again, this particular package allows only ONE hidden layer for the network. 
+
+It takes time and experience to figure out how many nodes to put in the hidden layer. We are using a rough rule of thumb here - you want more nodes than the number of output nodes (which will be 7, because there are 7 Species, though it could use 6 instead), and also need to factor in the number of input variables. We had 6 original variables and added 3 differenced variables, so there are 9 potential predictors. With 7 outputs and 9 predictors, I'm trying 13 nodes in the hidden layer. 
+
+```{r}
+set.seed(495)
+fishnnet <- nnet(Species ~ ., data = fish_train, size = 13)
+```
+
+We can see this neural net stopped after 100 iterations. 100 is the default *maxit* value, so you'd have to change that if you wanted to allow it to go further in terms of refining the weights. If it converges (according to it's stopping criteria), it will tell you. Let's increase *maxit* to see if we can get convergence. 
+
+```{r}
+set.seed(495)
+fishnnet <- nnet(Species ~ ., data = fish_train, size = 13, maxit = 1000)
+```
+
+So, it needed almost 300 iterations to converge (100 wasn't enough).
+
+Now let's look at what we get in our output. 
+
+```{r}
+names(fishnnet)
+```
+
+The object has a lot of parts. We can see the weights *wts*, fitted values, and some other items. What about summary functions?
+
+```{r}
+print(fishnnet)
+```
+
+This just gives a basic summary of the model and options that were set.
+
+What if we want to look at a visual of the neural net?
+
+```{r}
+plotnet(fishnnet)
+```
+
+In this plot, positive weights are black lines and negative weights are grey lines. Line thickness is based on relative magnitude of the weight. 
+
+If we want an idea of variable importance, the *NeuralNetTools* package has a function for that! If you are doing a single regression problem, use the *garson* function. If it's classification (or more than one regression problem - basically anything with more than 1 output node), use the *olden* function. The issue with *olden* is that it gives variable importance BY output node. 
+
+```{r}
+# you can go through each Species
+olden(fishnnet, out_var = "bream")
+olden(fishnnet, out_var = "parki") 
+olden(fishnnet, out_var = "white") #smallest class
+```
+
+We want to be sure we can get predictions from the neural net. If you just run predict on the nnet, you get the predictions on the training data. Adding the *newdata* option (or just supplying the test set), we can get the predictions on the test set. If you specify type = "class" for classification you'll get the predicted class. Otherwise, it gives you the output per node and you'd have to identify the output node with highest probability/value to get the prediction. 
+
+```{r}
+fishtrainpred <- predict(fishnnet, type = "class")
+fishpred <- predict(fishnnet, newdata = fish_test, type = "class")
+```
+
+We can use both of these to get an AER and estimated TER. 
+
+```{r}
+tally(fish_train$Species ~ fishtrainpred)
+```
+
+The AER is 0. It perfectly classifies every observation in the training set.
+
+```{r}
+tally(fish_test$Species ~ fishpred)
+3/37
+```
+
+There are 3 mistakes out of the 37 fish in the test data set, giving us an estimated TER of about 8 percent. 
+
+
+
+
+
+For examples, I attempted to fit a model on the Olive data set with a quantitative response, but I could not find a combination of option values for the function that gave me usable predictions. The documentation is not amazing for this package, so if you want to fit nnets for a continuous response, I strongly suggest finding another package to try. Even an example I found for regression was completely unstable - different seeds would give usable values for predictions versus all constant predictions. 
+
+The packages listed above are better, and able to do more complicated models. This should be enough to get you started though, even with its limitations. 
+
