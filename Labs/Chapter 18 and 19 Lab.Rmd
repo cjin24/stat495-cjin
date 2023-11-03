@@ -100,12 +100,16 @@ nnet_carseats <- nnet(High ~ . - Sales, train, size = 4)
 This neural net had 4 hidden nodes in the single hidden layer, and with this seed, it converged in less than 100 iterations (for me).
 Did yours converge?
 
+Yes
+
 Let's try increasing the number of nodes in the hidden layer. Does this neural net converge?
 
 ```{r}
 set.seed(495)
-nnet_carseats2 <- nnet(High ~ . - Sales, train, size = 8)
+nnet_carseats2 <- nnet(High ~ . - Sales, train, size = 8, maxit = 181)
 ```
+
+No, did not converge.
 
 Try adding the *maxit* parameter to the net with 8 hidden nodes and see if you can find a value for which it converges. 
 
@@ -126,13 +130,16 @@ olden(nnet_carseats)
 
 Look at the help page for the *olden* function. Why is this method considered superior to Garson's algorithm?
 
-
+Olden consistently out-performed Garson's algorithm in representing the true variable importance in simulated datasets. This ‘Olden’ method calculates variable importance as the product of the raw input-hidden and hidden-output connection weights between each input and output neuron and sums the product across all hidden neurons. An advantage of this approach is the relative contributions of each connection weight are maintained in terms of both magnitude and sign as compared to Garson's algorithm which only considers the absolute magnitude. An additional advantage is that Olden's algorithm is capable of evaluating neural networks with multiple hidden layers wheras Garson's was developed for networks with a single hidden layer.
 
 Finally, let's evaluate the performance of the neural nets. We can check how they do on both the training and the test data sets. Here is code to get predictions for the training and test data using the network with 4 hidden nodes.
  
 ```{r}
 trainpred <- predict(nnet_carseats, type = "class")
 pred <- predict(nnet_carseats, newdata = test, type = "class")
+
+trainpred2 <- predict(nnet_carseats2, type = "class")
+pred2 <- predict(nnet_carseats2, newdata = test, type = "class")
 ```
 
 Now let's get the confusion matrices for both train and test. 
@@ -140,25 +147,44 @@ Now let's get the confusion matrices for both train and test.
 ```{r}
 tally(High ~ trainpred, data = train)
 tally(High ~ pred, data = test)
+
+tally(High ~ trainpred2, data = train)
+tally(High ~ pred2, data = test)
 ```
 
 Get predictions for the model with 8 hidden nodes and enough iterations to converge on both the training and test sets. How well does this model do compared to the model with 4 hidden nodes? 
 
+```{r}
+# 4 hidden nodes
+(113+31)/(113+31+5+51) # train
+(106+19)/(106+19+12+63) # test
 
+# 8 hidden nodes
+(118+7)/(118+7+75) # train
+(114+5)/(114+5+77+4) # test
+```
 
+The model with 8 hidden nodes does slightly worse than that with 4 nodes.
 
 Try one more model with parameters of your choice for at least one new option. How does it do? 
 
 ```{r}
+set.seed(495)
+nnet_carseats3 <- nnet(US ~ . - Sales, train, size = 4)
 
+trainpred3 <- predict(nnet_carseats3, type = "class")
+pred3 <- predict(nnet_carseats3, newdata = test, type = "class")
+
+tally(High ~ trainpred3, data = train)
+tally(High ~ pred3, data = test)
+
+(52+64)/(52+64+18+66)
+(47+60)/(47+60+71+22)
 ```
-
-
 
 Which neural net model do you prefer overall?
 
-
-
+Overall, I prefer the previous two, and out of those, the one with fewer nodes.
 
 # SVMs for Classification
 
@@ -166,7 +192,7 @@ The *e1071* package and the *svm* function allows for SVMs to be fit in R.
 
 What else does it say it can do via the help menu?
 
-
+can be used to carry out general regression and classification (of nu and epsilon-type), as well as density-estimation
 
 Fitting a model is easy with the usual formula interface.
 
@@ -181,9 +207,9 @@ Fit a model called *svm2* using a polynomial kernel of degree 4 with a gamma of 
 
 
 ```{r}
-
+svm2 <- svm(High ~ . - Sales, data = train, gamma = 0.5, kernel = "radial", degree = 4)
+summary(svm2)
 ```
-
 
 Getting predictions is pretty easy using predict, as expected. We can then get confusion matrices to see how well the method is doing. 
 
@@ -192,16 +218,20 @@ svm1predtrain <- predict(svm1, train)
 svm1predtest <- predict(svm1, test)
 tally(High ~ svm1predtrain, data = train)
 tally(High ~ svm1predtest, data = test)
+
+svm2predtrain <- predict(svm2, train)
+svm2predtest <- predict(svm2, test)
+tally(High ~ svm2predtrain, data = train)
+tally(High ~ svm2predtest, data = test)
 ```
 
 What do you notice about the performance of svm1?
 
-
+svm1 performs perfectly on the training set, well on the test set.
 
 How does your svm2 compare?
 
-
-
+svm2 does slightly worse but also still well.
 
 Fit another svm to try to improve on the performance on the test set. Can you find a better model than either svm1 or svm2?
 
