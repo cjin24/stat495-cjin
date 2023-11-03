@@ -262,8 +262,7 @@ Do a brief google search. What other packages do you find out there for neural n
 
 > SOLUTION
 
-
-
+'neuralnet','keras','tensorflow'
 
 Use SVMs to explore models for predicting salary. Be sure to explore the SVM model options and the various parameter settings. 
 
