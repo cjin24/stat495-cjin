@@ -1,0 +1,18 @@
+# Final Project Title - Using Gaussian Mixture Models to Deconstruct Data With Unusual Distributions
+
+
+SYNOPSIS: 
+
+For the project, the new statistical topic I will be exploring is Gaussian mixture models (GMM). I encountered this topic in a statistical paper that I found for a STAT-225 homework assignment, where the researchers used a GMM to decompose their Centaur (asteroid-like bodies in space that revolve around the Sun in the outer solar system) sample into two normal distributions. Since mixture models are a generalization of k-means, I will lay a foundation of clustering before working to understand how GMM’s take the analysis method one step further. I will do this for the expectation-maximization (EM) algorithm as well. Also, I will recall the confidence interval and then expand to higher dimensional confidence metrics. Lastly, I will review the Gaussian distribution and go a bit deeper into covariance, since we only lightly used the concept in our 300-level STAT classes. I will also include applications of the GMM, as the paper in which I first came across GMM illustrated how they applied the model to the comet data. I will find data on an interesting topic and specifically seek out data sets that exhibit multimodality. This will take some thought on what kinds of real studies might result in observations that follow multiple Normal distributions, and some wrangling to clean the data before I can draw any distributional patterns out. Based on my statistical and writing experience, I expect that the reading component will be the most difficult for me, i.e., collecting enough outside material to form a complete picture in my mind, not just reading one relevant paper and calling it a day. I will need to stay focused on the important information surrounding the equations that give context and relationship to specific math. I will also be challenged by not purely regurgitating what I read, but understanding it enough to use it myself and to make bridges between papers that only cover specific topics. For the application component, I expect that the most challenging aspect will be wrangling the data both to clean it for more effective analysis and to get it into a format usable for GMM. I have not investigated any GMM packages in R yet, but if the command is one simple line, I may feel that I am doing insufficient work. I hope to find a very engaging data set that will push me to in terms of wrangling, analysis implementation, and interpretation, and through the process, I would love to thoroughly understand all of the components in whichever GMM package I use. These two sections will help me demonstrate my critical thinking, synthesis, organizational, wrangling, coding, and communication skills.
+
+
+TIMELINE: 
+
+* Annotated Bib Assignment - Due 11/15 by Class 
+* Exposition Draft Assignment - Due 12/1 by midnight to Gradescope
+(This will be a good pass on a first draft of this section but you can still edit it afterwards!)
+* Check-In - Due 12/1 by midnight (see project assignment) - this is an issue you create in the repo
+* Project Draft - Due 12/8 by midnight to Gradescope (for on-time points) and repo (so Prof. Wagaman can pull)
+* Peer Review of Draft - Due 12/11 by class - Form and materials in Google drive starting 12/9 morning
+* Final paper and all materials - Due 12/13 by 4 pm to Gradescope and repo 
+* Reflection - Due during finals week, exact date TBD
