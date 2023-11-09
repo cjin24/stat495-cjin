@@ -1,6 +1,6 @@
 ---
 title: "Homework 7 - Stat 495"
-author: "YourNameGoesHere"
+author: "Cassandra Jin"
 date: "Due Wednesday, Nov. 8th by midnight (11:59 pm)"
 output:
   pdf_document:
@@ -82,67 +82,102 @@ Your task for this problem is to fit the models described in parts c, d and e, a
 SOLUTION:
 
 ```{r}
-
+favstats(mybbb2$QikProp_.amidine)
 ```
 
-
-
-
-
-
-
+The variable `QikProp_.amidine` only has one non-zero observation of 1. It does not contain any values that would allow us to find a relationship between `QikProp_.amidine` and the other variables.
 
 ```{r}
 # run once you are ready to remove the variable to proceed
 # this variable is not used anywhere below, so overwrite the data set
-mybbb2 <- select(mybbb2, -QikProp_.amidine)
+mybbb2 <- mybbb2 %>%
+  select(-QikProp_.amidine) %>%
+  dplyr::mutate(class_val = ifelse(Class == "Crosses", 1, 0))
 ```
-
 
 > part b. Create an appropriate training/test split from mybbb2 with a ratio of 70/30 to use throughout the problems. As always, be sure your split is reproducible. 
 
 SOLUTION:
 
 ```{r}
+set.seed(495)
 
+n <- nrow(mybbb2)
+train_index <- sample(1:n, 0.7 * n)
+test_index <- setdiff(1:n, train_index)
+
+train <- mybbb2[train_index, ]
+test <- mybbb2[test_index, ]
 ```
-
 
 > part c. Create an appropriate model to predict Class with the training set using bagging with 1000 trees and otherwise with default settings for tuning parameter values. 
 
 SOLUTION:
 
 ```{r}
-
+set.seed(495)
+mybbb2_bag <- randomForest(Class ~ ., data = train, mtry = 49, ntree = 1000)
+mybbb2_bag
 ```
-
 
 > part d. Create an appropriate model to predict Class with the training set using a random forest with 1000 trees and otherwise with default settings for tuning parameter values. 
 
 SOLUTION:
 
 ```{r}
-
+set.seed(495)
+mybbb2_rf <- randomForest(Class ~ ., data = train, mtry = 17, ntree = 1000) # random forest: m = p/3
+mybbb2_rf
 ```
-
 
 > part e.  Create an appropriate model to predict Class with the training set using boosting with 500 trees and otherwise with default settings for tuning parameter values. 
 
 SOLUTION:
 
 ```{r}
-
+set.seed(495)
+mybbb2_boost <- gbm(class_val ~ ., 
+                   data = train, 
+                   distribution = "bernoulli",
+                   n.trees = 500, 
+                   interaction.depth = 4)
+mybbb2_boost
 ```
-
 
 > part f. Parts c, d, and e only required you to fit models. Now we want to compare their performance. Use an appropriate measure to compare the three models in terms of their model performance based on the test set.  Be sure your choice of measure is clear. Summarize your findings. Then discuss which model you would choose for predicting Class. Explain your choice. 
 
 SOLUTION:
 
 ```{r}
+# bagging
+mybbb2_bagest <- predict(mybbb2_bag, 
+                         newdata = test, 
+                         n.trees = 500, type = "response")
+mybbb2_bagpred <- ifelse(mybbb2_bagest == "Crosses", 1, 0)
+tally(~ mybbb2_bagpred)
+table(test$class_val, mybbb2_bagpred)
+0/24 # estimated TER
 
+# random forest
+mybbb2_rfest <- predict(mybbb2_rf, 
+                         newdata = test, 
+                         n.trees = 500, type = "response")
+mybbb2_rfpred <- ifelse(mybbb2_rfest == "Crosses", 1, 0)
+tally(~ mybbb2_rfpred)
+table(test$class_val, mybbb2_rfpred)
+3/24
+
+# boosting
+mybbb2_boostest <- predict(mybbb2_boost, 
+                         newdata = test, 
+                         n.trees = 500, type = "response")
+mybbb2_boostpred <- ifelse(mybbb2_boostest >= 0.5, 1, 0)
+tally(~ mybbb2_boostpred)
+table(test$class_val, mybbb2_boostpred)
+0/24
 ```
 
+The bagging TER is 0% (from the confusion matrix) and the estimated TER via the OOB error rate is 0%, and similarly, the TER based on the confusion matrix for boosting is 0%. The random forest model, however, yields a TER (from the confusion matrix) of 12.5% and the estimated TER via the OOB error rate is 3.57%. Based on the three models' predictions for the test set, the bagging and the boosting methods are equally strong. It is useful to see from the boosting output that there were 50 predictors of which 35 had non-zero influence, and the parameter setting of "bernoulli" makes it clearer to me that the outcome is either Crosses or DoesNot (whereas my impression from bagging is that there just happens to be 2 outcomes but it is not necessarily binary), so ultimately, I would choose the boosting model for predicting Class.
 
 \newpage
 
@@ -155,25 +190,26 @@ Your task for this problem is to fit the models described in parts a, b, and c, 
 SOLUTION:
 
 ```{r}
-
+set.seed(495)
+mybbb2_nnet1 <- nnet(Class ~ ., train, size = 15)
 ```
-
 
 > part b. Create an appropriate model to predict Class with the training set using a neural net with a single hidden layer of 15 nodes, and a decay parameter of 5e-4, and otherwise with default settings for tuning parameter values. 
 
 SOLUTION:
 
 ```{r}
-
+set.seed(495)
+mybbb2_nnet2 <- nnet(Class ~ ., train, size = 15, decay = 5e-4)
 ```
-
 
 > part c. Create an appropriate model to predict Class with the training set using a neural net with a single hidden layer of 15 nodes, a decay parameter of 5e-4, and a value for maxit that allows for convergence, and otherwise with default settings for tuning parameter values. 
 
 SOLUTION:
 
 ```{r}
-
+set.seed(495)
+mybbb2_nnet3 <- nnet(Class ~ ., train, size = 15, maxit = 1030, decay = 5e-4)
 ```
 
 > part d. Parts a, b, and c only required you to fit models. Now we want to compare their performance. Use an appropriate measure to compare the three models in terms of their model performance based on the test set.  Be sure your choice of measure is clear. Summarize your findings. Then discuss which model you would choose for predicting Class. Explain your choice. 
@@ -181,9 +217,32 @@ SOLUTION:
 SOLUTION:
 
 ```{r}
+# a) 15 nodes
+trainpred1 <- predict(mybbb2_nnet1, type = "class")
+pred1 <- predict(mybbb2_nnet1, newdata = test, type = "class")
+tally(Class ~ trainpred1, data = train)
+(1+7)/56
+tally(Class ~ pred1, data = test)
+(1+6)/24
 
+# b) 15 nodes, decay parameter of 5e-4
+trainpred2 <- predict(mybbb2_nnet2, type = "class")
+pred2 <- predict(mybbb2_nnet2, newdata = test, type = "class")
+tally(Class ~ trainpred2, data = train)
+3/56
+tally(Class ~ pred2, data = test)
+(6+2)/24
+
+# c) 15 nodes, decay parameter of 5e-4, value for maxit that allows for convergence
+trainpred3 <- predict(mybbb2_nnet3, type = "class")
+pred3 <- predict(mybbb2_nnet3, newdata = test, type = "class")
+tally(Class ~ trainpred3, data = train)
+0/56
+tally(Class ~ pred3, data = test)
+(6+2)/24
 ```
 
+Based on the confusion matrices from all three models predicting on both the training and test sets, we see that the model from part b has the highest error rate for both training and test sets. The model from part a, with the most default settings, yielded 14.3% error on the training set and 29.2% error on the test. Although the model from part c took the longest to run, it predicted perfectly on the training set and had only a slightly higher error rate on the test set compared to that of the part a model. So for predicting Class, I would choose the third neural net model, with a single hidden layer of 15 nodes, a decay parameter of 5e-4, and a value for maxit (1030) that allows for convergence, and otherwise with default settings for tuning parameter values.
 
 \newpage
 
@@ -196,25 +255,26 @@ Your task for this problem is to fit the models described in parts a, b, and c, 
 SOLUTION:
 
 ```{r}
-
+svm1 <- svm(Class ~ ., data = train, gamma = 0.75, kernel = "radial")
+summary(svm1)
 ```
-
 
 > part b. Create an appropriate model to predict Class with the training set using an SVM with a polynomial kernel and a gamma of 0.5, and otherwise with default settings for tuning parameter values.  
 
 SOLUTION:
 
 ```{r}
-
+svm2 <- svm(Class ~ ., data = train, gamma = 0.5, kernel = "poly")
+summary(svm2)
 ```
-
 
 > part c. Create an appropriate model to predict Class with the training set using an SVM with a polynomial kernel and a gamma of 0.0001, and otherwise with default settings for tuning parameter values.  
 
 SOLUTION:
 
 ```{r}
-
+svm3 <- svm(Class ~ ., data = train, gamma = 0.0001, kernel = "poly")
+summary(svm3)
 ```
 
 > part d. Parts a, b, and c only required you to fit models. Now we want to compare their performance. Use an appropriate measure to compare the three models in terms of model performance based on the test set.  Be sure your choice of measure is clear. Summarize your findings. Then discuss which model you would choose for predicting Class. Explain your choice. 
@@ -222,32 +282,72 @@ SOLUTION:
 SOLUTION:
 
 ```{r}
+# a)
+svm1predtrain <- predict(svm1, train)
+svm1predtest <- predict(svm1, test)
+tally(Class ~ svm1predtrain, data = train)
+0/56
+tally(Class ~ svm1predtest, data = test)
+(10+0)/24
 
+# b)
+svm2predtrain <- predict(svm2, train)
+svm2predtest <- predict(svm2, test)
+tally(Class ~ svm2predtrain, data = train)
+0/56
+tally(Class ~ svm2predtest, data = test)
+(1+2)/24
+
+# c)
+svm3predtrain <- predict(svm3, train)
+svm3predtest <- predict(svm3, test)
+tally(Class ~ svm3predtrain, data = train)
+25/56
+tally(Class ~ svm3predtest, data = test)
+(10+0)/24
 ```
+
+Based on the confusion matrices from all three SVMs predicting on both the training and test sets, we see that the model from part c does terribly for predicting Class, misclassifying all DoesNot observations for both the training and test sets. The models from part a and c both predicted Class perfectly on the training set, but the part a model yielded 41.7% error on the test set while the part c model had only 12.5% error on the test set. Thus, I would choose the second SVM a polynomial kernel and a gamma of 0.5, and otherwise with default settings for tuning parameter values.
 
 > part e. Look over your responses to Additional Problems 1, 2, and 3 in terms of your final model from each method/problem. Compare these three models, and explain which you would choose as an overarching final model to predict Class. Explain your choice. Your final choice may be determined by performance in conjunction with any factors you think are relevant. 
 
 SOLUTION:
 
 ```{r}
+# boosting
+table(test$class_val, mybbb2_boostpred)
+0/24
 
+# neural net: 15 nodes, decay parameter of 5e-4, value for maxit that allows for convergence
+tally(Class ~ trainpred3, data = train)
+0/56
+tally(Class ~ pred3, data = test)
+(6+2)/24
+
+# SVM: polynomial kernel, gamma of 0.5
+tally(Class ~ svm2predtrain, data = train)
+0/56
+tally(Class ~ svm2predtest, data = test)
+(1+2)/24
 ```
 
-
+Based on the TERs from the confusion matrices of the three final models (boosting, part c neural net, part b svm), we see that the boosting model is the only one that predicts perfectly on the test set. The boosting method was also the easiest to implement, yielding a 0% error rate with the fewest parameters compared to the other two models, so I would choose the boosting model for predicting Class.
 
 \newpage
 
 ## Additional Problem 4
 
-> part a. Neural nets and SVMs are both discussed as nonlinear models for prediction. Discuss where the "nonlinearity" is in both of these models. 
+> part a. Neural nets and SVMs are both discussed as nonlinear models for prediction. Discuss where the "nonlinearity" is in both of these models.
 
 SOLUTION:
 
+In neural nets, the linear transformations $z_l^{(2)}$ of the $x_j$ from the nonlinear transformation of these are separated, and the "nonlinearity" is in the layer-specific nonlinear transformations $g^{(k)}$ (activation functions), meaning that as data passes through each layer, the network learns hierarchical representations of the input and can capture nonlinear patterns that may exist. SVMs enrich the feature space through nonlinear transformations and basis expansions. A linear model in the enlarged space leads to a nonlinear model in the ambient space via the “kernel trick,” which allows the computations to be performed in the n-dimensional space for an arbitrary number of predictors p, so SVMs achieve nonlinearity by mapping data to a higher-dimensional space using kernel functions.
 
 > part b. Compare and contrast random forests and boosting in a few sentences. How are they similar? How are they different?
 
 SOLUTION:
 
+Both random forests and boosting represent the fitted model by a sum of regression trees, but random forests grow many deep regression trees to randomized versions (bootstrap sampling, subsampling of the observations, and/or subsampling of the variables) of the training data and average them, while boosting repeatedly grows shallow trees to the residuals and builds up an additive model consisting of a sum of trees. Random forests seek to reduce variance by averaging, as each deep tree has a high variance, and the averaging brings the variance down. Boosting, on the other hand, works to reduce bias.
 
 > part c. The concepts of backpropagation and the kernel trick are related, even though they are for neural nets and SVMs, respectively. What do these concepts have in common?
 
@@ -255,6 +355,7 @@ Hint: It has to do with what they help with in their respective methods.
 
 SOLUTION:
 
+In backpropagation, we compute the gradient in single layers, and since the loss part of the objective is a sum, the overall gradient is the sum of these individual gradient elements over the training pairs. The kernel trick expands the $p$-dimensional feature vector $x$ into a potentially much larger set by serving as an efficient way to compute the inner products for any $x$, and we can then compute the SVM solution in this enlarged space just as easily as in the original. Both backpropagation and the kernel trick work with individual, smaller components that can be expanded to the whole objective.
 
 > part d. Write your own short answer question relating to a concept from Chapter 17, 18, or 19, and then answer it. 
 
@@ -265,13 +366,7 @@ The motivation here is for you to pick something you are still unclear on and as
 SOLUTION:
 
 
-Q:
+Q: Given the shrinkage element of boosting, how are boosting and lasso related?
 
 
-A:
-
-
-
-
-
-
+A: Both methods are based in the process of forward-stagewise fitting via infinitesimal forward-stagewise regression. Lasso also returns as a post-processor for boosting, since boosting with shrinkage does a good job in building a prediction model, but it can end up generating a lot of trees. Due to the shrinkage, many of these trees could be similar to each other, so lasso is used to select a subset of these trees, reweight them, and produce a prediction model with far fewer trees that maintains good accuracy.
