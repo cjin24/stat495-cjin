@@ -1,0 +1,81 @@
+---
+title: "Ch 15 Notes Example"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, setup, include=FALSE}
+library(mosaic)   # Load additional packages here 
+```
+
+```{r}
+# set initial values and seeds
+set.seed(499)
+N <- 100
+n <- 20
+
+# generate data with 5 "interesting" results we want picked up
+# using N(50,5) as "null" 
+# the 5 interesting results have a N(55, 5)
+# and are for the last 5 variables # 96-100
+# can you see how to code this so the choice of 5, 50, 55, and sd 5 were set by 
+# a user?
+data <- c(rnorm((N-5)*n, 50, 5), rnorm(5*n, 55, 5))
+datamat <- matrix(data, nrow = n, byrow = FALSE)
+datamat <- data.frame(datamat)
+
+# process data and run t-stats and get p-values 
+# examine distributions
+means <- sapply(datamat, mean)
+sds <- sapply(datamat, sd)
+tstats <- sqrt(n)*(means-50)/sds
+pvals <- 1-pt(tstats, df = n-1)
+gf_dens(~ tstats)
+gf_dens(~ pvals)
+# look at 20 smallest p-values
+round(sort(pvals), 5)[1:20]
+
+# example p-value adjustment command in R
+adjpvals <- p.adjust(pvals, method = "holm")
+gf_dens(~ adjpvals)
+# look at 20 smallest adjusted p-values
+round(sort(adjpvals), 5)[1:20]
+```
+
+
+```{r}
+# same idea, but shows you can increase n and observe behavior changes
+set.seed(495)
+N <- 100
+n <- 30
+data <- c(rnorm((N-5)*n, 50, 5), rnorm(5*n, 55, 5))
+datamat <- matrix(data, nrow = n, byrow = FALSE)
+datamat <- data.frame(datamat)
+means <- sapply(datamat, mean)
+sds <- sapply(datamat, sd)
+tstats <- sqrt(n)*(means-50)/sds
+pvals <- 1-pt(tstats, df = n-1) 
+gf_dens(~tstats)
+gf_dens(~pvals)
+round(sort(pvals), 5)[1:20]
+adjpvals <- p.adjust(pvals, method = "holm")
+gf_dens(~ adjpvals)
+round(sort(adjpvals), 5)[1:20]
+```
+
+
+
+
+
+
+
+
+
