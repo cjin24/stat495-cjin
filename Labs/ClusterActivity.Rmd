@@ -1,0 +1,179 @@
+---
+title: "HPC Activity"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, include = FALSE}
+library(mosaic)
+library(ISLR)
+library(glmnet)
+library(broom)
+library(rslurm)     # Slurm is the job control software for the HPC system
+options(digits = 6)
+```
+
+## Getting on the Amherst High-Performance Computing System
+
+The Amherst HPC system lets you run R code with several different methods:
+
+* RStudio via a remote desktop
+* Jupyter Notebook via the Web
+* The Unix shell, a command-line interface accessed via a terminal program
+
+All of these require remote access to the HPC system, which if you are off campus will also require entering the campus virtual private network (VPN): https://www.amherst.edu/offices/it/services/network/vpn .
+
+RStudio is the most familiar to you, so we’ll use that. The Unix shell is the most flexible and powerful, and occasionally you’ll need to dip into it, but we’ll keep that in our back pockets for now.
+
+### RStudio via a remote desktop
+
+Remote desktop lets you access the HPC system with a graphical desktop interface.
+
+1. Here are instructions for connecting to a remote desktop; use the domain name “hpc.amherst.edu”: https://www.amherst.edu/academiclife/departments/computer_science/computing/windows .
+2. Once you have logged in, you can look around the desktop; it should be familiar to you, though a little odd for being a different system.
+3. Look in the menu `Applications` > `Education` and you’ll find `RStudio`.
+4. In `RStudio`, in the pane `Files`, create a new folder named `stat495`.
+
+Be aware that a blank, black screensaver will kick in after only five minutes of inactivity; just click on the screen to get a login prompt. You will also be disconnected after about 30 minutes of inactivity.
+
+## Transferring files to the Amherst HPC system
+
+There are a number of ways to transfer files to the HPC system:
+
+* Network disk (SMB) via your local desktop
+* SCP via the command line
+* SFTP via GUI programs
+
+We’ll use a network disk, which will look just like a folder on your own computer. 
+
+### Network disk (SMB) via your local desktop
+
+1. Here are instructions for connecting to a network disk; use the domain name “hpc.amherst.edu”: https://www.amherst.edu/offices/it/knowledge_base/academic-resources/unix_servers/unix_network_space .
+2. Once connected to the HPC system, on your desktop you should see a window displaying the folders on the HPC system, in this case the one you just created, `stat495`; open it.
+3. Wherever you put this markdown file locally, open its folder and drag it over to `stat495`.
+
+## Revisiting Predicting Price
+
+For our analysis, we will use the King County, Washington (State) house sales data set as before, but using a more complete set. The Kaggle reference is: https://www.kaggle.com/swathiachath/kc-housesales-data/version/1 .
+
+```{r}
+kchouse <- read.csv("https://awagaman.people.amherst.edu/stat495/kc_house_data.csv", header = T)
+count(kchouse)
+head(kchouse)
+```
+      n
+1 21597
+
+          id       date   price bedrooms bathrooms sqft_living sqft_lot floors waterfront view condition grade
+1 7129300520 10/13/2014  221900        3      1.00        1180     5650      1          0    0         3     7
+2 6414100192  12/9/2014  538000        3      2.25        2570     7242      2          0    0         3     7
+3 5631500400  2/25/2015  180000        2      1.00         770    10000      1          0    0         3     6
+4 2487200875  12/9/2014  604000        4      3.00        1960     5000      1          0    0         5     7
+5 1954400510  2/18/2015  510000        3      2.00        1680     8080      1          0    0         3     8
+6 7237550310  5/12/2014 1230000        4      4.50        5420   101930      1          0    0         3    11
+  sqft_above sqft_basement yr_built yr_renovated zipcode     lat     long sqft_living15 sqft_lot15
+1       1180             0     1955            0   98178 47.5112 -122.257          1340       5650
+2       2170           400     1951         1991   98125 47.7210 -122.319          1690       7639
+3        770             0     1933            0   98028 47.7379 -122.233          2720       8062
+4       1050           910     1965            0   98136 47.5208 -122.393          1360       5000
+5       1680             0     1987            0   98074 47.6168 -122.045          1800       7503
+6       3890          1530     2001            0   98053 47.6561 -122.005          4760     101930
+
+Suppose we want to predict log(price), using a subset of the variables shown above:
+
+bedrooms, bathrooms, sqft_living, sqft_lot, floors, waterfront, view, condition, sqft_basement, yr_built, yr_renovated, zipcode
+
+The variables waterfront, view, condition, and zipcode are categorical variables. So first we mutate the dataset for these variables, while also calculating log(price), and then select this subset of variables:
+
+```{r}
+kchouseMutate <- mutate(kchouse, logprice = log(price), waterfront = as.factor(waterfront), view = as.factor(view), condition = as.factor(condition), zipcode = as.factor(zipcode))
+
+kchouseSelect <- select(kchouseMutate, logprice, bedrooms, bathrooms, sqft_living, sqft_lot, floors, waterfront, view, condition, sqft_basement, yr_built, yr_renovated, zipcode)
+
+formulaSelect = formula(kchouseSelect)
+formulaSelect
+```
+
+Now, we might not be convinced we need `zipcode` in the model, so we might decide to drop it, and use a nested F-test to check. But what if the conditions aren't met? Or we are concerned about it? 
+
+```{r}
+
+model1 <- lm(formulaSelect, data = kchouseSelect)
+msummary(model1)
+
+model2 <- lm(logprice ~ bedrooms + bathrooms + sqft_living + sqft_lot + floors + 
+    waterfront + view + condition + sqft_basement + yr_built + 
+    yr_renovated, data = kchouseSelect)
+
+anova(model1, model2)
+
+savedanovaF <- anova(model1, model2)$F[2]
+```
+
+So the F test indicates that zipcode is significant. But let’s also do a permutation test anyway, shuffling the zipcode around amongst the properties to test for independence on this variable. (We are trying a simplistic version of this — multiple approaches exist in the literature.)
+
+With 20,000+ observations, considering the relationship between price (as a number) and these variables can be tricky if considering doing a permutation test or bootstrap, due to the sheer number of observations.
+
+So let's use the HPC system to tackle the permutation test. First, let’s define a function that can be called by the `rslurm` library:
+
+```{r}
+permute <- function(logprice,bedrooms, bathrooms, sqft_living, sqft_lot, floors, waterfront, view, condition, sqft_basement, yr_built, yr_renovated, zipcode) {
+  reps = 100
+  savedF <- rep(0, reps)  # Create empty vectors to hold the results
+  savedp <- rep(0, reps)  
+  for(i in 1:reps){
+    model1 <- lm(logprice ~ bedrooms + bathrooms + sqft_living + sqft_lot + floors + 
+      waterfront + view + condition + sqft_basement + yr_built + 
+      yr_renovated + shuffle(zipcode), data = houses)
+    tmpdata <- augment(model1)
+    model2 <- lm(logprice ~ bedrooms + bathrooms + sqft_living + sqft_lot + floors + 
+      waterfront + view + condition + sqft_basement + yr_built + 
+      yr_renovated, data = tmpdata)
+    savedF[i] <- anova(model1, model2)[2,5]
+    savedp[i] <- anova(model1, model2)[2,6]
+  }
+  data.frame(savedF,savedp)
+}
+```
+
+Now, we’ll distribute that function and the data to the HPC system’s cpu cluster.
+
+The default cluster characteristics used with the function slurm_apply are:
+# nodes = 2   (this is actually slurm’s option --array !)
+# cpus_per_node = 2   (this is actually slurm’s option --cpus-per-task !)
+
+But we will change them to “fit in”.
+```{r}
+
+sjob <- slurm_apply(permute, params = kchouseSelect, jobname = 'permutation', nodes = 1, cpus_per_node = 10)
+
+```
+To check on the jobs’s status:
+```{r}
+get_job_status(sjob)$completed
+```
+
+An alternative to the above with slightly more information is to use the more general direct query to slurm:
+```{r}
+system('squeue-hpc --me')
+```
+
+The resulting output is placed in the folder _rslurm_jobname, and a summarized version can be quickly retrieved as follows:
+```{r}
+results <- get_slurm_out(sjob, outtype = 'table', wait = FALSE)
+results
+```
+
+Additional options to slurm, more specifically to sbatch, can be provided using their long names in a list, e.g.
+```{r}
+soptions <- list(time = '1:00:00', mem = '16G')
+slurm_apply(.... , slurm_options = soptions)
+```

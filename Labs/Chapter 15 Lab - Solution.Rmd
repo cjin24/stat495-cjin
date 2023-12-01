@@ -1,5 +1,5 @@
 ---
-title: "Stat 495 - Chapter 15 Lab"
+title: "Stat 495 - Chapter 15 Lab - Solution"
 author: "A.S. Wagaman"
 output:
   pdf_document:
@@ -39,14 +39,17 @@ The log re-expression helps with satisfying appropriate conditions.
 ```{r}
 CPS85 <- mutate(CPS85, logwage = log(wage))
 mymod <- lm(logwage ~ sector, data = CPS85)
-msummary(mymod)
+msummary(mymod) # the F and its p-value here is the same you'd get with the next line
+anova(mymod)
+mplot(mymod, which = 1)
+mplot(mymod, which = 2)
 ```
 
 What do we learn from the ANOVA output?
 
 > SOLUTION
 
-Overall model is significant, but some sectors do not predict logwage called.
+The plots tell us that the conditions appear to be met. Looking at the overall F-test, we see an F statistic of 16.73 with a tiny p-value. So, this suggests that at least one mean log(wage) is different from another somewhere within the possible pairwise comparisons. We just don't know where. 
 
 To perform multiple comparisons, several functions can be used, but two common ones for this setting are pairwise.t.test and PostHocTest (in DescTools). 
 
@@ -59,7 +62,9 @@ Compare the output between the methods for Bonferroni's approach. Which method d
 
 > SOLUTION
 
-PostHocTest, because although there are many more lines to look through, I don't need to figure out which values are less than 0.05 myself.
+The p-value table is easier to read for a large number of comparisons, but it doesn't provide confidence intervals. So, your preference might depend on what you want to be looking at. 
+
+Here, we learn that 12 of the differences in mean log(wages) are significant at a level of 0.05.
 
 Implement "none", "holm", and "fdr" methods for these comparisons using pairwise.t.test. What differences do you note in the results? (PostHocTests doesn't have all of these implemented for aov.)
 
@@ -71,7 +76,12 @@ with(CPS85, pairwise.t.test(log(wage), sector, p.adjust = "holm"))
 with(CPS85, pairwise.t.test(log(wage), sector, p.adjust = "fdr"))
 ```
 
-holm yields a lot of p-values = 1.000, fdr yields larger p-values than none does.
+With no adjustment, we see very different results. A total of 16 differences are detected. The p-values are much lower than we saw with Bonferroni's method.
+
+With holm's method, we see p-values in between Bonferroni's and no adjustment. The same 12 differences are found to be significant as previously identified with Bonferroni's. 
+
+With the fdr method, the p-values are lower than Holm's but not as low as those with no adjustment. It looks like 14 differences would be denoted as interesting. 
+
 
 # p.adjust methods
 
@@ -119,7 +129,8 @@ Examine the distribution of the z-scores.
 > SOLUTION
 
 ```{r}
-gf_dens(~ prostz$V1)
+gf_histogram(~ V1, data = prostz)
+favstats(~ V1, data = prostz)
 ```
 
 
@@ -129,16 +140,20 @@ Consider two-sided hypotheses. How many null hypotheses would be rejected (out o
 
 > SOLUTION
 
+Here, we would want to split the 0.05 into the tails, equally, presumably. (You can split it unequally too). So, with 0.025 in each tail, the unadjusted z-score cutoff for a critical value is our familiar 1.96. So, we'd reject if Z was less than or equal to -1.96 or greater than or equal to 1.96. (The probability of it being exactly 1.96 in absolute value is 0, so this is ignored below.)
+
 ```{r}
 qnorm(0.025)
 length(which(abs(prostz$V1)>1.96))
 ```
 
+We would identify 478 of the 6033 genes as interesting with this criterion. That's clearly way too large. That's almost 8% of the genes. 
 
 What would you do differently if you wanted to apply Bonferroni's procedure to two-sided hypotheses?
 
 > SOLUTION
 
+The basic principle is the same - we split the alpha up over the m tests. But the cutoff we determine has to factor in the tails, as above. So we'd want the cutoff based on $\alpha/(2N)$. 
 
 
 Perform your two-sided Bonferroni adjustment on the prostate z-scores by hand. How many null hypotheses are rejected at $\alpha = 0.05$?
@@ -146,50 +161,70 @@ Perform your two-sided Bonferroni adjustment on the prostate z-scores by hand. H
 > SOLUTION
 
 ```{r}
-
+0.05/(2*6033)
+cutoff <- 0.05/(2*6033)
+-1*qnorm(cutoff)
 ```
 
+The cutoff is 4.4576 (slightly larger than the book's 4.31 because we are looking at both tails, not just one.)
 
-Obtain the two-sided p-values (if you didn't up above - it can be done based on critical values).
+```{r}
+length(which(abs(prostz$V1)>4.4576))
+```
+
+This flags only 3 of the z-scores as interesting, which seems like too few. 
+
+Obtain the two-sided p-values (if you didn't up above - it can be done based on critical values alone).
 
 > SOLUTION
 
 ```{r}
-
+absz <- abs(prostz$V1)
+pval2side <- 2*pnorm(absz, lower.tail = FALSE)
+favstats(~ pval2side)
+gf_density(~ pval2side)
+length(which(pval2side <= 0.05)) # verify 478 were <= 0.05
 ```
-
 
 Apply p.adjust using bonferroni to your p-values. Do you obtain the same results as you did by hand? How many null hypotheses are rejected at $\alpha = 0.05$?
 
 > SOLUTION
 
 ```{r}
-
+bonfpvals <- p.adjust(pval2side, method = "bonf")
+length(which(bonfpvals <= 0.05))
 ```
 
+Yes. These are the same results we obtained by hand. We identify only 3 p-values as interesting. 
 
 Apply Holm's method using p.adjust. How many null hypotheses are rejected at $\alpha = 0.05$?
 
 > SOLUTION
 
 ```{r}
-
+holmpvals <- p.adjust(pval2side, method = "holm")
+length(which(holmpvals <= 0.05))
 ```
 
+This also gives us just 3 interesting results. 
 
 Apply FDR using p.adjust. How many results are declared interesting at $q=\alpha=0.05$? At $q=0.1$?
 
 > SOLUTION
 
 ```{r}
-
+fdrpvals <- p.adjust(pval2side, method = "fdr")
+length(which(fdrpvals <= 0.05))
+length(which(fdrpvals <= 0.1))
 ```
 
+This gives us 21 interesting results at alpha = 0.05, and 60 if we go up to 0.1 as the cutoff. 
 
 How do the methods compare?
 
 > SOLUTION
 
+The fdr method is identifying more interesting results. Holm's and Bonferroni behaved very similarly. 
 
 # Khan Data
 
@@ -201,7 +236,7 @@ khan <- khan[, -1] #remove row indices
 khant <- data.frame(t(khan)) #transpose so rows become columns
 ```
 
-We want to identify the top genes that allow us to significantly distinguish between tumor types, appropriately adjusting for simultaneous testing. Each ROW in the initial data set should be used as the response in ANOVA (which is why we flipped it above), where the class labels are:
+We want to identify the top genes that allow us to significantly distinguish between tumor types, appropriately adjusting for simultaneous testing. Each ROW in the initial data set should be used as the response in ANOVA (which is why we flipped it above to put those as the columns in our usual way of thinking about data sets), where the class labels are:
 
 ```{r}
 labels <- c(rep("EWS", 23), rep("BL", 8), rep("NB", 12), rep("RMS", 21))
@@ -215,5 +250,43 @@ anova(lm(khant[, 1]~labels))$"Pr(>F)"[1]
 
 > SOLUTION
 
+We need to obtain the ANOVA p-values so that we can then adjust them. We know how to extract the p-value for a single gene, so we really just need a loop (or some apply function) and to store the resulting values. 
 
+```{r}
+anovapvals <- rep(0, 2308)
+
+for(i in 1:2308){
+  anovapvals[i] <- anova(lm(khant[, i]~labels))$"Pr(>F)"[1]
+}
+```
+
+Now we have 2308 p-values! We can examine their distribution.
+
+```{r}
+favstats(~ anovapvals)
+gf_histogram(~ anovapvals)
+```
+
+There are a LOT of small p-values.
+
+```{r}
+length(which(anovapvals <= 0.05))
+length(which(anovapvals <= 0.01))
+```
+
+
+We need to adjust for doing 2308 tests simultaneously. As an example, I'll run fdr and holm's, but I am also dropping the overall alpha to 0.01 because this is a medical study. 
+
+```{r}
+fdranovapvals <- p.adjust(anovapvals, method = "fdr")
+length(which(fdranovapvals <= 0.01))
+length(which(fdranovapvals <= 0.1)) #just to see
+```
+
+```{r}
+holmanovapvals <- p.adjust(anovapvals, method = "holm")
+length(which(holmanovapvals <= 0.01))
+```
+
+These methods identify a LOT of interesting results. Even being conservative with holms and using an overall alpha of 0.01, we identify 178 interesting results out of 2308. The fdr method identifies a lot more. 
 
