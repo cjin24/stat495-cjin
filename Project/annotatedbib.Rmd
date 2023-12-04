@@ -31,6 +31,7 @@ https://link.springer.com/chapter/10.1007/978-1-4471-5779-3_2
 
 - This textbook chapter lays a strong statistical groundwork for GMMs, first introducing the basic concepts of random variables and the associated distributions and then applying to Gaussian random variables and mixture-of-Gaussian random variables. It goes on to fit the model to real-world data such as speech recognition systems. This source does particularly well in discussing key advantages and weaknesses of GMMs and describing the principles of maximum likelihood and the EM algorithm in detail.
 
+
 # Original Paper
 
 ## Pattern Classification and Scene Analysis
@@ -40,6 +41,7 @@ Duda, R. O., & Hart, P. E. (1973). Pattern classification and scene analysis (Vo
 https://www.svms.org/classification/DuHS95.pdf
 
 - This is an early paper on GMMs that begins by breaking down the restrictive assumption that the functional forms for the underlying probability densities are known. It explains that standard algorithms suffer from problems associated with parametric assumptions without providing any of the benefits of computational simplicity. So this paper provides the motivations behind learning the value of an unknown parameter vector by partitioning the data into subgroups or clusters. It then shows how this method leads to useful tools for pattern recognition problems.
+
 
 # Background/Other
 
@@ -65,7 +67,15 @@ Wan, H., Wang, H., Scotney, B., & Liu, J. (2019, October). A novel gaussian mixt
 
 https://ieeexplore.ieee.org/document/8914215
 
-- This piece analyzes the performance of GMM as a classifier in comparison with other conventional classifiers such as k-nearest neighbors (KNN), support vector machine (SVM), decision tree and naive Bayes. It finds that GMMs do not do well relative to the other methods, and the authors propose a new GMM classifier, SC-GMM, which is significantly more competitive with with the other classification approaches.
+- This piece analyzes the performance of GMM as a classifier in comparison with other conventional classifiers such as k-nearest neighbors (KNN), support vector machine (SVM), decision tree and naive Bayes. It finds that GMMs do not do well relative to the other methods, and the authors propose a new GMM classifier, SC-GMM, which is significantly more competitive with with the other classification approaches. It also includes a step-by-step explanation of the EM algorithm and BIC.
+
+## Gaussian Mixture Model based pattern recognition for understanding the long-term impact of COVID-19 on energy consumption of public buildings
+
+Huang, Z., & Gou, Z. (2023). Gaussian Mixture Model based pattern recognition for understanding the long-term impact of COVID-19 on energy consumption of public buildings. Journal of Building Engineering, 72, 106653.
+
+https://www.sciencedirect.com/science/article/pii/S235271022300832X?casa_token=eMqNtBtfi04AAAAA:7MIMTz61F2cnIOV-RSdfKenvpPZd3ygOcn7Ij_TgJVLHQl5gxwuYocWI1j979QBMHjKWueDnD7A
+
+- This contains explanation of GMMs, relation to BIC, comparison to traditional methods, application.
 
 # Blogs
 
@@ -88,6 +98,7 @@ https://towardsdatascience.com/gaussian-mixture-model-clearly-explained-115010f7
 https://www.r-bloggers.com/2018/12/gaussian-mixture-models-k-means-on-steroids/
 
 - This blog delves into the R implementation of GMMs, showing different (extreme) types of datasets containing multiple distributions and how GMM performs in capturing their nature. It also lists out the parameters up for estimation which contribute to the performance of the GMM.
+
 
 # Applications
 
@@ -122,6 +133,7 @@ Xi, Z., Wei, S. S., Zhu, W., Beroza, G., Jie, Y., & Saloor, N. (2023). Deep Lear
 https://eartharxiv.org/repository/view/6222/
 
 - This paper introduces an integrated deep-learning-based workflow to detect deep earthquakes recorded by ocean-bottom seismographs (OBSs) and land-based stations in the Tonga subduction zone. With the goal of detecting different wave arrivals in the time-frequency domain, the researchers use Gaussian Mixture Model Associator GaMMA-1D to find associations between predicted phases. They find that this approach suppresses false predictions and significantly improves the detection of small earthquakes.
+
 
 # R Packages
 
