@@ -6,7 +6,7 @@ blinded: 0
 
 authors: 
 - name: Cassandra Jin
-  thanks: The authors gratefully acknowledge ...
+  thanks: The authors gratefully acknowledge Professor Amy Wagaman
   affiliation: Department of Mathematics and Statistics, Amherst College
   
 
@@ -29,6 +29,7 @@ library(mdsr)
 library(knitr)
 library(kableExtra)
 library(MGMM) #package for fitting GMMs in the presence of missing data
+library(mclust)
 ```
 
 # Introduction
@@ -48,6 +49,8 @@ This paper aims to guide readers through the fundamental concepts that underpin 
 ## The Gaussian Distribution
 
 The most basic concept in probability theory and in statistics is the random variable. A random variable can be understood as a mapping from a random experiment to a variable, and depending on the nature of the experiment and the design of the mapping, a random variable can take on discrete values, continuous values, or a mix of discrete and continuous values. One possible distribution that the resulting values may follow is the singular Gaussian distribution, which has probability density function (PDF)
+
+\begin{align} R_X(t, s) &= E[A \cos \omega t \cdot A \cos \omega s] \\ &= A^2 E[\cos \omega t \cos \omega s] \end{align}
 
 \begin{equation}
 \label{single}
@@ -240,5 +243,100 @@ head(choose_k$Results)
 
 # Application to Data
 
+```{r}
+# Multivariate Normal PDF Function Given a matrix x, mu (mean), and
+# sigma (covariance), we can calculate the probability density for each
+# row using the apply function. The function returns a column vector of
+# probabilities.
+
+max_iter <- 100
+bic_values <- numeric(max_iter)
+
+mvpdf <- function(x, mu, sigma) {
+    if (det(sigma) == 0) {
+        warning("Determinant is equal to 0.")
+    }
+    apply(x, 1, function(x) exp(-(1/2) * (t(x) - mu) %*% MASS::ginv(sigma) %*% 
+        t(t(x) - mu))/sqrt(det(2 * pi * sigma)))
+}
+
+# Plot dataset
+plot(iris[, 1:4], col = iris$Species, pch = 18, main = "Fisher's Iris Dataset")
+
+# Mclust comes with a method of hierarchical clustering. We'll
+# initialize 3 different classes.
+initialk <- hc(data = iris, modelName = "EII")
+initialk <- hclass(initialk, 3)
+# First split by class and calculate column-means for each class.
+mu <- split(iris[, 1:4], initialk)
+mu <- t(sapply(mu, colMeans))
+# Covariance Matrix for each initial class.
+cov <- list(diag(4), diag(4), diag(4))
+# Mixing Components
+a <- runif(3)
+a <- a/sum(a)
+
+for (iter in 1:max_iter) {
+  
+# Calculate PDF with class means and covariances.
+z <- cbind(mvpdf(x = iris[, 1:4], mu = mu[1, ], sigma = cov[[1]]), mvpdf(x = iris[, 
+    1:4], mu = mu[2, ], sigma = cov[[2]]), mvpdf(x = iris[, 1:4], mu = mu[3, 
+    ], sigma = cov[[3]]))
+
+# Expectation Step for each class.
+r <- cbind((a[1] * z[, 1])/rowSums(t((t(z) * a))), (a[2] * z[, 2])/rowSums(t((t(z) * 
+    a))), (a[3] * z[, 3])/rowSums(t((t(z) * a))))
+
+# Choose the highest rowwise probability
+eK <- factor(apply(r, 1, which.max))
+
+# Total Responsibility
+mc <- colSums(r)
+
+# Update Mixing Components.
+a <- mc/NROW(iris)
+
+# Update our Means
+mu <- rbind(colSums(iris[, 1:4] * r[, 1]) * 1/mc[1], colSums(iris[, 1:4] * 
+    r[, 2]) * 1/mc[2], colSums(iris[, 1:4] * r[, 3]) * 1/mc[3])
+
+
+# Update Covariance matrix.
+cov[[1]] <- t(r[, 1] * t(apply(iris[, 1:4], 1, function(x) x - mu[1, ]))) %*% 
+    (r[, 1] * t(apply(iris[, 1:4], 1, function(x) x - mu[1, ]))) * 1/mc[1]
+
+cov[[2]] <- t(r[, 2] * t(apply(iris[, 1:4], 1, function(x) x - mu[2, ]))) %*% 
+    (r[, 2] * t(apply(iris[, 1:4], 1, function(x) x - mu[2, ]))) * 1/mc[2]
+
+cov[[3]] <- t(r[, 3] * t(apply(iris[, 1:4], 1, function(x) x - mu[3, ]))) %*% 
+    (r[, 3] * t(apply(iris[, 1:4], 1, function(x) x - mu[3, ]))) * 1/mc[3]
+
+# Compute the sum of the mixture densities, take the log, and add the
+# column vector.
+loglik <- sum(log(apply(t(t(z) * a), 1, sum)))
+
+# BIC is calculated using the equation
+# bic <- -2 * loglik + 14 * log(NROW(iris))
+bic_values[iter] <- -2 * loglik + 14 * log(NROW(iris))
+}
+```
+
+```{r}
+# After every iteration we can plot.
+par(mfrow = c(1, 2))
+plot(bic_values, type = "l", lwd = 2, col = "red", main = "BIC", xlab = "Iterations", 
+    ylab = "Score")
+plot(loglik, type = "l", lwd = 2, col = "blue", main = "Log-Likelihood", 
+    xlab = "Iterations", ylab = "Score")
+
+# Load the package
+library(mclust)
+
+# Select 4 continuous variables and look for three distinct groups.
+mcl.model <- Mclust(iris[, 1:4], 3)
+
+# Plot our results.
+plot(mcl.model, what = "classification", main = "Mclust Classification")
+```
 
 # Conclusion
