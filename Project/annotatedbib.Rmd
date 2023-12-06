@@ -148,3 +148,25 @@ https://rdrr.io/cran/ClusterR/man/GMM.html
 https://www.biorxiv.org/content/10.1101/2019.12.20.884551v2.full
 
 - This article introduces MGMM, an R package for fitting GMMs in the presence of missing data. Using three case studies on real and simulated data sets, it demonstrates that, when the underlying distribution is near to a GMM, MGMM is more effective at recovering the true cluster assignments than state of the art imputation followed by standard GMM.
+
+## Gaussian Mixtures
+
+https://cran.r-project.org/web/packages/sBIC/vignettes/GaussianMixtures.pdf
+
+## Mixture Models
+
+- https://rpubs.com/arquez9512/mixture-models
+
+## Model-based clustering and Gaussian mixture model in R
+
+- https://en.proft.me/2017/02/1/model-based-clustering-r/
+
+## An Intro to Gaussian Mixture Modeling
+
+- https://www.r-bloggers.com/2017/02/an-intro-to-gaussian-mixture-modeling/
+
+## Gaussian Mixture Models Example (Python)
+
+- https://www.astroml.org/astroML-notebooks/chapter6/astroml_chapter6_Gaussian_Mixture_Models.html
+
+
