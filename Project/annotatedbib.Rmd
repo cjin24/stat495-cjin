@@ -184,18 +184,20 @@ https://cran.r-project.org/web/packages/sBIC/vignettes/GaussianMixtures.pdf
 
 ## Mixture Models
 
-- https://rpubs.com/arquez9512/mixture-models
+https://rpubs.com/arquez9512/mixture-models
 
 ## Model-based clustering and Gaussian mixture model in R
 
-- https://en.proft.me/2017/02/1/model-based-clustering-r/
+https://en.proft.me/2017/02/1/model-based-clustering-r/
 
 ## An Intro to Gaussian Mixture Modeling
 
-- https://www.r-bloggers.com/2017/02/an-intro-to-gaussian-mixture-modeling/
+https://www.r-bloggers.com/2017/02/an-intro-to-gaussian-mixture-modeling/
 
 ## Gaussian Mixture Models Example (Python)
 
-- https://www.astroml.org/astroML-notebooks/chapter6/astroml_chapter6_Gaussian_Mixture_Models.html
+https://www.astroml.org/astroML-notebooks/chapter6/astroml_chapter6_Gaussian_Mixture_Models.html
 
+## Breast Cancer
 
+https://rpubs.com/raviolli77/352956

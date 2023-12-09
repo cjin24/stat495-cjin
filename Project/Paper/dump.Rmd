@@ -44,3 +44,30 @@ The posterior probabilities of these parameters computed from the E-step are giv
 h_m^{(j)}(t) = \frac{c_m^{(j)} N(x^{(t)}; \mu_m^{(j)}, \Sigma_m^{(j)})}{\sum_{i=1}^n c_i^{(j)} N(x^{(t)}; \mu_i^{(j)}, \Sigma_i^{(j)})}.
 \end{equation}
 
+
+```{r}
+library(RCurl)
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+         'texture_mean', 'perimeter_mean', 'area_mean', 
+         'smoothness_mean', 'compactness_mean', 
+         'concavity_mean','concave_points_mean', 
+         'symmetry_mean', 'fractal_dimension_mean',
+         'radius_se', 'texture_se', 'perimeter_se', 
+         'area_se', 'smoothness_se', 'compactness_se', 
+         'concavity_se', 'concave_points_se', 
+         'symmetry_se', 'fractal_dimension_se', 
+         'radius_worst', 'texture_worst', 
+         'perimeter_worst', 'area_worst', 
+         'smoothness_worst', 'compactness_worst', 
+         'concavity_worst', 'concave_points_worst', 
+         'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+breast_cancer <- mutate(breast_cancer, diagnosis_val = ifelse(diagnosis == "M", 1, 0))
+breast_cancer$id_number <- NULL
+head(breast_cancer)
+
+fm <- lm(diagnosis_val ~ . - diagnosis - texture_se-perimeter_se-area_se-radius_se-smoothness_se-compactness_se-concavity_se-concave_points_se-symmetry_se-fractal_dimension_se-radius_worst-texture_worst-perimeter_worst-area_worst-smoothness_worst-compactness_worst-concavity_worst-concave_points_worst-symmetry_worst-fractal_dimension_worst, data = breast_cancer)
+msummary(fm) # use radius_mean, texture_mean, area_mean, concave_points_mean
+```
+

@@ -32,6 +32,8 @@ library(kableExtra)
 library(MGMM) # for fitting GMMs in the presence of missing data
 library(mclust)
 library(MASS) # for galaxies data
+library(RCurl)
+library(dplyr)
 ```
 
 # Introduction
@@ -225,5 +227,157 @@ head(choose_k$Results)
 
 # Application to Data
 
+## Iris
+
+First, let us observe the multivariate normal PDF function and apply the GMM process on a familiar dataset, `iris`. Given a matrix `x`, `mu` (mean), and `sigma` (covariance), we write a function that calculates the probability density for each row, and this function is used to fill in the components of the mean vector and covariance matrix for the GMM.
+
+```{r}
+data(iris)
+
+max_iter <- 100
+bic_values <- numeric(max_iter)
+
+mvpdf <- function(x, mu, sigma) {
+    if (det(sigma) == 0) {
+        warning("Determinant is equal to 0.")
+    }
+    apply(x, 1, function(x) exp(-(1/2) * (t(x) - mu) %*% MASS::ginv(sigma) %*% 
+        t(t(x) - mu))/sqrt(det(2 * pi * sigma)))
+}
+
+# plot dataset
+plot(iris[, 1:4], col = iris$Species, pch = 18, main = "Fisher's Iris Dataset")
+
+# Mclust comes with hierarchical clustering -> initialize 3 different classes
+initialk <- hc(data = iris, modelName = "EII")
+initialk <- hclass(initialk, 3)
+# split by class, calculate column-means for each class
+mu <- split(iris[, 1:4], initialk)
+mu <- t(sapply(mu, colMeans))
+# covariance matrix for each initial class
+cov <- list(diag(4), diag(4), diag(4))
+# mixing components
+a <- runif(3)
+a <- a/sum(a)
+
+for (iter in 1:max_iter) {
+# calculate PDF with class means and covariances
+z <- cbind(mvpdf(x = iris[, 1:4], mu = mu[1, ], sigma = cov[[1]]), mvpdf(x = iris[, 
+    1:4], mu = mu[2, ], sigma = cov[[2]]), mvpdf(x = iris[, 1:4], mu = mu[3, 
+    ], sigma = cov[[3]]))
+
+# expectation step for each class
+r <- cbind((a[1] * z[, 1])/rowSums(t((t(z) * a))), (a[2] * z[, 2])/rowSums(t((t(z) * 
+    a))), (a[3] * z[, 3])/rowSums(t((t(z) * a))))
+
+# choose highest row-wise probability
+eK <- factor(apply(r, 1, which.max))
+
+# total responsibility
+mc <- colSums(r)
+
+# update mixing components
+a <- mc/NROW(iris)
+
+# update means
+mu <- rbind(colSums(iris[, 1:4] * r[, 1]) * 1/mc[1], colSums(iris[, 1:4] * 
+    r[, 2]) * 1/mc[2], colSums(iris[, 1:4] * r[, 3]) * 1/mc[3])
+
+# update covariance matrix
+cov[[1]] <- t(r[, 1] * t(apply(iris[, 1:4], 1, function(x) x - mu[1, ]))) %*% 
+    (r[, 1] * t(apply(iris[, 1:4], 1, function(x) x - mu[1, ]))) * 1/mc[1]
+
+cov[[2]] <- t(r[, 2] * t(apply(iris[, 1:4], 1, function(x) x - mu[2, ]))) %*% 
+    (r[, 2] * t(apply(iris[, 1:4], 1, function(x) x - mu[2, ]))) * 1/mc[2]
+
+cov[[3]] <- t(r[, 3] * t(apply(iris[, 1:4], 1, function(x) x - mu[3, ]))) %*% 
+    (r[, 3] * t(apply(iris[, 1:4], 1, function(x) x - mu[3, ]))) * 1/mc[3]
+
+# compute sum of the mixture densities, take log, add the column vector
+loglik <- sum(log(apply(t(t(z) * a), 1, sum)))
+
+# calculate BIC
+bic_values[iter] <- -2 * loglik + 14 * log(NROW(iris))
+}
+
+# plot after each iteration
+par(mfrow = c(1, 2))
+plot(bic_values, type = "l", lwd = 2, col = "red", main = "BIC", xlab = "Iterations", 
+    ylab = "Score")
+plot(loglik, type = "l", lwd = 2, col = "blue", main = "Log-Likelihood", 
+    xlab = "Iterations", ylab = "Score")
+
+# select 4 continuous variables, look for three distinct groups
+mcl.model <- Mclust(iris[, 1:4], 3)
+
+# plot results
+plot(mcl.model, what = "classification", main = "Mclust Classification")
+```
+
+## Breast Cancer in Wisconsin
+
+Now, we move onto a new dataset, the Breast Cancer Wisconsin (Diagnostic) Dataset. The observations are obtained by processing digitized images of a fine needle aspirate (FNA) of breast mass. With 569 instances of either benign or malignant tumors, each feature in the dataset describes more than 30 characteristics of the cell nuclei that are found in the digitalized images. We will consider just four variables: `radius_mean`, `texture_mean`, `area_mean`, `concave_points_mean` (chosen by observing term significance in a regression model for predicting `diagnosis`).
+
+```{r, include = FALSE}
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+         'texture_mean', 'perimeter_mean', 'area_mean', 
+         'smoothness_mean', 'compactness_mean', 
+         'concavity_mean','concave_points_mean', 
+         'symmetry_mean', 'fractal_dimension_mean',
+         'radius_se', 'texture_se', 'perimeter_se', 
+         'area_se', 'smoothness_se', 'compactness_se', 
+         'concavity_se', 'concave_points_se', 
+         'symmetry_se', 'fractal_dimension_se', 
+         'radius_worst', 'texture_worst', 
+         'perimeter_worst', 'area_worst', 
+         'smoothness_worst', 'compactness_worst', 
+         'concavity_worst', 'concave_points_worst', 
+         'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+
+breast_cancer$id_number <- NULL
+breast_cancer <- breast_cancer %>%
+  mutate(diagnosis_val = ifelse(diagnosis == "M", 1, 0)) %>%
+  dplyr::select(radius_mean,
+                texture_mean,
+                area_mean,
+                concave_points_mean,
+                diagnosis,
+                everything())
+```
+
+```{r}
+head(breast_cancer[, 1:5])
+```
+
+```{r}
+max_iter <- 100
+bic_values <- numeric(max_iter)
+
+mvpdf <- function(x, mu, sigma) {
+    if (det(sigma) == 0) {
+        warning("Determinant is equal to 0.")
+    }
+    apply(x, 1, function(x) exp(-(1/2) * (t(x) - mu) %*% MASS::ginv(sigma) %*% 
+        t(t(x) - mu))/sqrt(det(2 * pi * sigma)))
+}
+
+initialk <- hc(data = breast_cancer, modelName = "EII")
+initialk <- hclass(initialk, 3)
+# mean for each class
+mu <- split(breast_cancer[, 1:4], initialk)
+mu <- t(sapply(mu, colMeans))
+# covariance matrix for each initial class
+cov <- list(diag(4), diag(4), diag(4))
+# mixing components
+a <- runif(3)
+a <- a/sum(a)
+
+mcl.model <- Mclust(breast_cancer[, 1:4], 3)
+plot(mcl.model, what = "classification", main = "Mclust Classification")
+```
+
 
 # Conclusion
+
