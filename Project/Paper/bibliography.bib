@@ -107,37 +107,57 @@
   publisher={Elsevier}
 }
 
-
-
-@article{Girolami05,
-	Abstract = {To provide a parsimonious generative representation of the sequential activity of a number of individuals within a population there is a necessary tradeoff between the definition of individual specific and global 
-representations. A linear-time algorithm is proposed that defines a distributed predictive model for finite state symbolic sequences which represent the traces of the activity of a number of individuals within a group. The algorithm is based on a straightforward generalization of latent Dirichlet allocation to time-invariant Markov chains of arbitrary order. The modelling assumption made is that the possibly heterogeneous behavior of individuals may be represented by a relatively small number of simple and common behavioral traits which may interleave randomly according to an individual-specific distribution. The results of an empirical study on three different application domains indicate that this modelling approach provides an efficient low-complexity and intuitively interpretable representation scheme which is reflected by improved prediction performance over comparable models.},
-	Annote = {Builds a mixed-membership model where the basis profiles are markov chains of varying order. 
-Uses two types of estimation: Variational approximation, and "maximum a posteriori" (MAP)
-Fits model on 3 different data sets of user-log data: actions in a word processor, sequences of calls to different geographic regions (UK), and finally web page browsing. 
-
-Compares models on "perplexity" which they define as the exponential of the negative-normalized log-likelihood.  (Might be a standard markov-chain goodness of fit measure, or it might be more standard to ML)
-They use t-tests and non-parametric Wilcoxon Rank-Sum tests to test for significant differences in perplexity.
-
-They call their model a "simplical mixture of markov chains" and cite Minka and Lafferty 2002. 
-
-For the zero^th order Markov model (when no memory is assumed in the markov process), then their model reduces to a multinomial LDA model. 
-
-They also claim that Hofmann's pLSA algorithm is equivalent to LDA when the MAP estimator is calculated through an iterative convergence method. Suggests that LDA is an improvement over pLSA because of the estimation method used.  Cites Lappalainen and Miskin (2000) on the weakness of MAP estimators. 
-
-For all the data sets, the mixed-membership model offers better results. Better on the goodness-of-fit measures and more interpretable results.  The differences were clearer on the bigger data sets with larger state-spaces. 
-
-Data Structure:  only 1 item per model - the sequences (J=1)
-	many replications of each item (big R) 
-
-They offer some additional comments on computational algorithms and computational time.},
-	Author = {Mark Girolami and Ata Kaban},
-	Date-Added = {2013-06-25 19:41:00 +0000},
-	Date-Modified = {2013-06-25 19:41:00 +0000},
-	Journal = {Data Mining and Knowledge Discovery},
-	Keywords = {Latent Dirichlet Allocation, markov chains, Mixture models, user profiling, mixed membership, variational approximation},
-	Pages = {175-196},
-	Title = {Sequential Activity Profiling: Latent Dirichlet Allocation of Markov Chains},
-	Volume = {10},
-	Year = {2005}
+@article{riaz2020gaussian,
+  title={Gaussian mixture model based probabilistic modeling of images for medical image segmentation},
+  author={Riaz, Farhan and Rehman, Saad and Ajmal, Muhammad and Hafiz, Rehan and Hassan, Ali and Aljohani, Naif Radi and Nawaz, Raheel and Young, Rupert and Coimbra, Miguel},
+  journal={IEEE Access},
+  volume={8},
+  pages={16846--16856},
+  year={2020},
+  publisher={IEEE}
 }
+
+@article{melzi2017dedicated,
+  title={A dedicated mixture model for clustering smart meter data: identification and analysis of electricity consumption behaviors},
+  author={Melzi, Fateh Nassim and Same, Allou and Zayani, Mohamed Haykel and Oukhellou, Latifa},
+  journal={Energies},
+  volume={10},
+  number={10},
+  pages={1446},
+  year={2017},
+  publisher={MDPI}
+}
+
+@article{gopinathan2023stock,
+  title={Stock price prediction using a novel approach in Gaussian mixture model-hidden Markov model},
+  author={Gopinathan, Kala Nisha and Murugesan, Punniyamoorthy and Jeyaraj, Joshua Jebaraj},
+  journal={International Journal of Intelligent Computing and Cybernetics},
+  year={2023},
+  publisher={Emerald Publishing Limited}
+}
+
+@article{mcnicholas2010model,
+  title={Model-based clustering of microarray expression data via latent Gaussian mixture models},
+  author={McNicholas, Paul D and Murphy, Thomas Brendan},
+  journal={Bioinformatics},
+  volume={26},
+  number={21},
+  pages={2705--2712},
+  year={2010},
+  publisher={Oxford University Press}
+}
+
+
+@article{McCaw2019.12.20.884551,
+	abstract = {Although missing data are prevalent in applications, existing implementations of Gaussian mixture models (GMMs) require complete data. Standard practice is to perform complete case analysis or imputation prior to model fitting. Both approaches have serious drawbacks, potentially resulting in biased and unstable parameter estimates. Here we present MGMM, an R package for fitting GMMs in the presence of missing data. Using three case studies on real and simulated data sets, we demonstrate that, when the underlying distribution is near-to a GMM, MGMM is more effective at recovering the true cluster assignments than state of the art imputation followed by standard GMM. Moreover, MGMM provides an accurate assessment of cluster assignment uncertainty even when the generative distribution is not a GMM. This assessment may be used to identify unassignable observations. MGMM is available as an R package on CRAN: https://CRAN.R-project.org/package=MGMM.Competing Interest StatementThe authors have declared no competing interest.},
+	author = {Zachary R. McCaw and Hanna Julienne and Hugues Aschard},
+	doi = {10.1101/2019.12.20.884551},
+	elocation-id = {2019.12.20.884551},
+	eprint = {https://www.biorxiv.org/content/early/2020/10/03/2019.12.20.884551.full.pdf},
+	journal = {bioRxiv},
+	publisher = {Cold Spring Harbor Laboratory},
+	title = {MGMM: An R Package for fitting Gaussian Mixture Models on Incomplete Data},
+	url = {https://www.biorxiv.org/content/early/2020/10/03/2019.12.20.884551},
+	year = {2020},
+	bdsk-url-1 = {https://www.biorxiv.org/content/early/2020/10/03/2019.12.20.884551},
+	bdsk-url-2 = {https://doi.org/10.1101/2019.12.20.884551}}

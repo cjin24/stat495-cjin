@@ -19,3 +19,28 @@ Gaussian mixture models are more flexible in terms of the shape of the clusters,
 In many cases, however, the performance of GMM as a classifier is not impressive compared with other conventional classifiers such as k-nearest neighbors (KNN), support vector machine (SVM), decision tree and naive Bayes. In this paper, we attempt to address this problem. We propose a GMM classifier, SC-GMM, based on the separability criterion in order to separate the Gaussian models as much as possible. This classifier finds the optimal number of Gaussian components for each class based on the separability criterion and then determines the parameters of these Gaussian components by using the expectation maximization algorithm. Extensive experiments have been carried out on classification tasks from general data mining to face verification. Results show that SC-GMM significantly outperforms the original GMM classifier. Results also show that SC-GMM is comparable in classification accuracy to three variants of GMM classifier: Akaike Information Criterion based GMM (AIC-GMM), Bayesian Information Criterion based GMM (BIC-GMM) and variational Bayesian gaussian mixture (VBGM). However, SC-GMM is significantly more efficient than both AIC-GMM and BIC-GMM. Furthermore, compared with KNN, SVM, decision tree and naive Bayes, SC-GMM achieves competitive classification performance. [@wan2019novel]
 
 when the underlying distribution is near-to a GMM, MGMM is more effective at recovering the true cluster assignments than state of the art imputation followed by standard GMM. Moreover, MGMM provides an accurate assessment of cluster assignment uncertainty even when the generative distribution is not a GMM. This assessment may be used to identify unassignable observations.
+
+
+
+\begin{equation}
+\label{c}
+c_m^{(j+1)} = \frac{1}{N} \sum_{t=1}^N h_m^{(j)}(t),
+\end{equation}
+
+\begin{equation}
+\label{mu}
+\mu_m^{(j+1)} = \frac{\sum_{t=1}^N h_m^{(j)}(t) x^{(t)}}{\sum_{t=1}^N h_m^{(j)}(t)},
+\end{equation}
+
+\begin{equation}
+\label{sigma}
+\Sigma_m^{(j+1)} = \frac{\sum_{t=1}^N h_m^{(j)}(t) [x^{(t)} - \mu_m^{(j)}][x^{(t)} - \mu_m^{(j)}]^T}{\sum_{t=1}^N h_m^{(j)}(t)},
+\end{equation}
+
+The posterior probabilities of these parameters computed from the E-step are given by
+
+\begin{equation}
+\label{posterior}
+h_m^{(j)}(t) = \frac{c_m^{(j)} N(x^{(t)}; \mu_m^{(j)}, \Sigma_m^{(j)})}{\sum_{i=1}^n c_i^{(j)} N(x^{(t)}; \mu_i^{(j)}, \Sigma_i^{(j)})}.
+\end{equation}
+

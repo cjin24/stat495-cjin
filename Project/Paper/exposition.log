@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.9.5)  2 DEC 2023 01:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.9.5)  9 DEC 2023 03:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -444,24 +444,24 @@ File: l3backend-pdftex.def 2023-01-16 L3 backend support: PDF output (pdfTeX)
 ) (./exposition.aux)
 \openout1 = `exposition.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 101.
-LaTeX Font Info:    ... okay on input line 101.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 102.
+LaTeX Font Info:    ... okay on input line 102.
 (/usr/local/texlive/2023/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count312
@@ -483,7 +483,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-Package hyperref Info: Link coloring OFF on input line 101.
+Package hyperref Info: Link coloring OFF on input line 102.
 [1
 Non-PDF special ignored!
 <special> header=psfrag.pro
@@ -493,122 +493,101 @@ al/texlive/2023/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
 <3.jpg, id=18, 387.4475pt x 248.93pt>
 File: 3.jpg Graphic file (type jpg)
 <use 3.jpg>
-Package pdftex.def Info: 3.jpg  used on input line 171.
+Package pdftex.def Info: 3.jpg  used on input line 185.
 (pdftex.def)             Requested size: 387.44655pt x 248.92938pt.
 [2 <./3.jpg>]
-Overfull \hbox (14.48619pt too wide) in paragraph at lines 189--196
+Overfull \hbox (14.48619pt too wide) in paragraph at lines 208--215
 \OT1/cmr/m/n/12 GMMs, of-fer-ing a com-pre-hen-sive overview of their math-e-ma
 t-i-cal for-mu-la-tion, the Expectation-
  []
 
-[3] [4] [5] [6] [7]
-<1.jpg, id=90, 399.50856pt x 399.50856pt>
+[3] [4] [5] [6] [7] [8]
+<1.jpg, id=112, 399.50856pt x 399.50856pt>
 File: 1.jpg Graphic file (type jpg)
 <use 1.jpg>
-Package pdftex.def Info: 1.jpg  used on input line 416.
+Package pdftex.def Info: 1.jpg  used on input line 432.
 (pdftex.def)             Requested size: 399.50758pt x 399.50758pt.
-<2.jpg, id=91, 399.36401pt x 430.58466pt>
+<2.jpg, id=117, 399.36401pt x 430.58466pt>
 File: 2.jpg Graphic file (type jpg)
 <use 2.jpg>
-Package pdftex.def Info: 2.jpg  used on input line 423.
+Package pdftex.def Info: 2.jpg  used on input line 439.
 (pdftex.def)             Requested size: 399.36302pt x 430.58359pt.
-[8] [9 <./1.jpg>] [10 <./2.jpg>]
+[9 <./1.jpg>] [10 <./2.jpg>] [11]
 
-Package xcolor Warning: Incompatible color definition on input line 475.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
-[11]
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 477.
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 509.
 LaTeX Font Info:    Trying to load font information for OML+cmtt on input line 
-478.
-LaTeX Font Info:    No file OMLcmtt.fd. on input line 478.
+510.
+LaTeX Font Info:    No file OMLcmtt.fd. on input line 510.
 
 LaTeX Font Warning: Font shape `OML/cmtt/m/n' undefined
 (Font)              using `OML/cmm/m/it' instead
-(Font)              for symbol `textless' on input line 478.
+(Font)              for symbol `textless' on input line 510.
 
 
-Package xcolor Warning: Incompatible color definition on input line 483.
+Package xcolor Warning: Incompatible color definition on input line 515.
 
 
-Package xcolor Warning: Incompatible color definition on input line 483.
-
-
-Package xcolor Warning: Incompatible color definition on input line 510.
+Package xcolor Warning: Incompatible color definition on input line 515.
 
 [12]
+LaTeX Font Info:    Trying to load font information for OMS+cmr on input line 5
+35.
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/omscmr.fd
+File: omscmr.fd 2022/07/10 v2.5l Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 535.
 
-Package xcolor Warning: Incompatible color definition on input line 517.
-
-
-Package xcolor Warning: Incompatible color definition on input line 517.
-
-
-Package xcolor Warning: Incompatible color definition on input line 531.
-
-
-Package xcolor Warning: Incompatible color definition on input line 535.
+Package xcolor Warning: Incompatible color definition on input line 547.
 
 
-Package xcolor Warning: Incompatible color definition on input line 535.
+Package xcolor Warning: Incompatible color definition on input line 554.
+
+
+Package xcolor Warning: Incompatible color definition on input line 554.
+
+
+Package xcolor Warning: Incompatible color definition on input line 554.
 
 [13]
 
-Package xcolor Warning: Incompatible color definition on input line 579.
-
-LaTeX Font Info:    Trying to load font information for OMS+cmtt on input line 
-594.
-LaTeX Font Info:    No file OMScmtt.fd. on input line 594.
-
-LaTeX Font Warning: Font shape `OMS/cmtt/bx/n' undefined
-(Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbackslash' on input line 594.
+Package xcolor Warning: Incompatible color definition on input line 554.
 
 
-Package xcolor Warning: Incompatible color definition on input line 596.
+Package xcolor Warning: Incompatible color definition on input line 554.
 
 
-Package xcolor Warning: Incompatible color definition on input line 596.
+Package xcolor Warning: Incompatible color definition on input line 568.
 
 
-Package xcolor Warning: Incompatible color definition on input line 596.
+Package xcolor Warning: Incompatible color definition on input line 572.
+
+
+Package xcolor Warning: Incompatible color definition on input line 572.
 
 [14]
 
-Package xcolor Warning: Incompatible color definition on input line 596.
+Package xcolor Warning: Incompatible color definition on input line 620.
+
+LaTeX Font Info:    Trying to load font information for OMS+cmtt on input line 
+635.
+LaTeX Font Info:    No file OMScmtt.fd. on input line 635.
+
+LaTeX Font Warning: Font shape `OMS/cmtt/bx/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbackslash' on input line 635.
 
 
-Package xcolor Warning: Incompatible color definition on input line 596.
+Package xcolor Warning: Incompatible color definition on input line 637.
 
 
-Package xcolor Warning: Incompatible color definition on input line 602.
+Package xcolor Warning: Incompatible color definition on input line 637.
 
 
-Package xcolor Warning: Incompatible color definition on input line 606.
-
-
-Package xcolor Warning: Incompatible color definition on input line 606.
-
-
-Package xcolor Warning: Incompatible color definition on input line 612.
-
-
-Package xcolor Warning: Incompatible color definition on input line 616.
-
-
-Package xcolor Warning: Incompatible color definition on input line 616.
-
-
-Package xcolor Warning: Incompatible color definition on input line 623.
-
-
-Package xcolor Warning: Incompatible color definition on input line 627.
-
-
-Package xcolor Warning: Incompatible color definition on input line 627.
-
-
-Package xcolor Warning: Incompatible color definition on input line 633.
+Package xcolor Warning: Incompatible color definition on input line 637.
 
 [15]
 
@@ -618,90 +597,283 @@ Package xcolor Warning: Incompatible color definition on input line 637.
 Package xcolor Warning: Incompatible color definition on input line 637.
 
 
-Package xcolor Warning: Incompatible color definition on input line 644.
+Package xcolor Warning: Incompatible color definition on input line 643.
 
 
-Package xcolor Warning: Incompatible color definition on input line 648.
+Package xcolor Warning: Incompatible color definition on input line 647.
 
 
-Package xcolor Warning: Incompatible color definition on input line 648.
+Package xcolor Warning: Incompatible color definition on input line 647.
 
 
-Package xcolor Warning: Incompatible color definition on input line 654.
+Package xcolor Warning: Incompatible color definition on input line 653.
 
 
-Package xcolor Warning: Incompatible color definition on input line 658.
+Package xcolor Warning: Incompatible color definition on input line 657.
 
 
-Package xcolor Warning: Incompatible color definition on input line 658.
+Package xcolor Warning: Incompatible color definition on input line 657.
 
 
-Package xcolor Warning: Incompatible color definition on input line 665.
+Package xcolor Warning: Incompatible color definition on input line 664.
 
 
-Package xcolor Warning: Incompatible color definition on input line 669.
+Package xcolor Warning: Incompatible color definition on input line 668.
 
 
-Package xcolor Warning: Incompatible color definition on input line 669.
+Package xcolor Warning: Incompatible color definition on input line 668.
 
 
-Package xcolor Warning: Incompatible color definition on input line 691.
+Package xcolor Warning: Incompatible color definition on input line 674.
 
 [16]
 
-Package xcolor Warning: Incompatible color definition on input line 695.
+Package xcolor Warning: Incompatible color definition on input line 678.
+
+
+Package xcolor Warning: Incompatible color definition on input line 678.
+
+
+Package xcolor Warning: Incompatible color definition on input line 685.
+
+
+Package xcolor Warning: Incompatible color definition on input line 689.
+
+
+Package xcolor Warning: Incompatible color definition on input line 689.
 
 
 Package xcolor Warning: Incompatible color definition on input line 695.
 
 
-Package xcolor Warning: Incompatible color definition on input line 705.
+Package xcolor Warning: Incompatible color definition on input line 699.
 
 
-Package xcolor Warning: Incompatible color definition on input line 709.
+Package xcolor Warning: Incompatible color definition on input line 699.
 
 
-Package xcolor Warning: Incompatible color definition on input line 709.
+Package xcolor Warning: Incompatible color definition on input line 706.
 
 
-Package xcolor Warning: Incompatible color definition on input line 716.
+Package xcolor Warning: Incompatible color definition on input line 710.
 
 
-Package xcolor Warning: Incompatible color definition on input line 720.
+Package xcolor Warning: Incompatible color definition on input line 710.
 
 
-Package xcolor Warning: Incompatible color definition on input line 720.
-
-
-Package xcolor Warning: Incompatible color definition on input line 730.
-
-
-Package xcolor Warning: Incompatible color definition on input line 734.
-
-
-Package xcolor Warning: Incompatible color definition on input line 734.
-
-
-Package xcolor Warning: Incompatible color definition on input line 741.
+Package xcolor Warning: Incompatible color definition on input line 731.
 
 [17]
 
-Package xcolor Warning: Incompatible color definition on input line 745.
+Package xcolor Warning: Incompatible color definition on input line 735.
+
+
+Package xcolor Warning: Incompatible color definition on input line 735.
 
 
 Package xcolor Warning: Incompatible color definition on input line 745.
 
-(./exposition.bbl) [18] (./exposition.aux)
+
+Package xcolor Warning: Incompatible color definition on input line 749.
+
+
+Package xcolor Warning: Incompatible color definition on input line 749.
+
+
+Package xcolor Warning: Incompatible color definition on input line 756.
+
+
+Package xcolor Warning: Incompatible color definition on input line 760.
+
+
+Package xcolor Warning: Incompatible color definition on input line 760.
+
+
+Package xcolor Warning: Incompatible color definition on input line 770.
+
+
+Package xcolor Warning: Incompatible color definition on input line 774.
+
+
+Package xcolor Warning: Incompatible color definition on input line 774.
+
+
+Package xcolor Warning: Incompatible color definition on input line 781.
+
+[18]
+
+Package xcolor Warning: Incompatible color definition on input line 785.
+
+
+Package xcolor Warning: Incompatible color definition on input line 785.
+
+
+Package xcolor Warning: Incompatible color definition on input line 800.
+
+
+Package xcolor Warning: Incompatible color definition on input line 804.
+
+
+Package xcolor Warning: Incompatible color definition on input line 804.
+
+
+Package xcolor Warning: Incompatible color definition on input line 806.
+
+
+LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbraceleft' on input line 816.
+
+LaTeX Font Info:    Trying to load font information for TS1+cmtt on input line 
+825.
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/ts1cmtt.fd
+File: ts1cmtt.fd 2022/07/10 v2.5l Standard LaTeX font definitions
+)
+
+Package xcolor Warning: Incompatible color definition on input line 827.
+
+
+Package xcolor Warning: Incompatible color definition on input line 827.
+
+
+Package xcolor Warning: Incompatible color definition on input line 827.
+
+[19]
+
+Package xcolor Warning: Incompatible color definition on input line 827.
+
+
+Package xcolor Warning: Incompatible color definition on input line 827.
+
+<exposition_files/figure-latex/unnamed-chunk-6-1.pdf, id=207, 419.5675pt x 284.
+06125pt>
+File: exposition_files/figure-latex/unnamed-chunk-6-1.pdf Graphic file (type pd
+f)
+<use exposition_files/figure-latex/unnamed-chunk-6-1.pdf>
+Package pdftex.def Info: exposition_files/figure-latex/unnamed-chunk-6-1.pdf  u
+sed on input line 829.
+(pdftex.def)             Requested size: 419.56647pt x 284.06053pt.
+
+Package xcolor Warning: Incompatible color definition on input line 831.
+
+
+LaTeX Font Warning: Font shape `OML/cmtt/m/it' undefined
+(Font)              using `OML/cmm/m/it' instead
+(Font)              for symbol `textless' on input line 885.
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+[20 <./exposition_files/figure-latex/unnamed-chunk-6-1.pdf>]
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Underfull \vbox (badness 10000) detected at line 889
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 889
+ []
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+[21]
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Underfull \vbox (badness 10000) detected at line 889
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 889
+ []
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+[22]
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Package xcolor Warning: Incompatible color definition on input line 889.
+
+
+Package xcolor Warning: Incompatible color definition on input line 891.
+
+
+Package xcolor Warning: Incompatible color definition on input line 900.
+
+
+Package xcolor Warning: Incompatible color definition on input line 900.
+
+<exposition_files/figure-latex/unnamed-chunk-7-1.pdf, id=230, 438.63875pt x 283
+.0575pt>
+File: exposition_files/figure-latex/unnamed-chunk-7-1.pdf Graphic file (type pd
+f)
+<use exposition_files/figure-latex/unnamed-chunk-7-1.pdf>
+Package pdftex.def Info: exposition_files/figure-latex/unnamed-chunk-7-1.pdf  u
+sed on input line 902.
+(pdftex.def)             Requested size: 438.63766pt x 283.0568pt.
+
+Package xcolor Warning: Incompatible color definition on input line 904.
+
+
+Package xcolor Warning: Incompatible color definition on input line 915.
+
+
+Package xcolor Warning: Incompatible color definition on input line 915.
+
+
+Package xcolor Warning: Incompatible color definition on input line 915.
+
+[23 <./exposition_files/figure-latex/unnamed-chunk-7-1.pdf>]
+
+Package xcolor Warning: Incompatible color definition on input line 915.
+
+
+Package xcolor Warning: Incompatible color definition on input line 915.
+
+<exposition_files/figure-latex/unnamed-chunk-7-2.pdf, id=243, 445.665pt x 301.1
+25pt>
+File: exposition_files/figure-latex/unnamed-chunk-7-2.pdf Graphic file (type pd
+f)
+<use exposition_files/figure-latex/unnamed-chunk-7-2.pdf>
+Package pdftex.def Info: exposition_files/figure-latex/unnamed-chunk-7-2.pdf  u
+sed on input line 917.
+(pdftex.def)             Requested size: 445.66391pt x 301.12425pt.
+
+Overfull \hbox (1.01874pt too wide) in paragraph at lines 917--918
+[][] 
+ []
+
+(./exposition.bbl [24 <./exposition_files/figure-latex/unnamed-chunk-7-2.pdf>] 
+[25]) [26] (./exposition.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  ) 
 Here is how much of TeX's memory you used:
- 12593 strings out of 476025
- 199259 string characters out of 5790018
- 1858388 words of memory out of 5000000
- 32762 multiletter control sequences out of 15000+600000
- 521216 words of font info for 64 fonts, out of 8000000 for 9000
+ 12691 strings out of 476025
+ 202221 string characters out of 5790018
+ 1860388 words of memory out of 5000000
+ 32835 multiletter control sequences out of 15000+600000
+ 521811 words of font info for 66 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  89i,12n,90p,584b,578s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
@@ -717,13 +889,15 @@ cal/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local
 texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/te
 xlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/tex
 live/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texl
-ive/2023/texmf-dist/fonts/type1/public/cm-super/sfrm0700.pfb></usr/local/texliv
-e/2023/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/
-2023/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on exposition.pdf (18 pages, 2048041 bytes).
+ive/2023/texmf-dist/fonts/type1/public/cm-super/sfit1200.pfb></usr/local/texliv
+e/2023/texmf-dist/fonts/type1/public/cm-super/sfrm0700.pfb></usr/local/texlive/
+2023/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/20
+23/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2023
+/texmf-dist/fonts/type1/public/cm-super/sftt1200.pfb>
+Output written on exposition.pdf (26 pages, 2178507 bytes).
 PDF statistics:
- 283 PDF objects out of 1000 (max. 8388607)
- 225 compressed objects within 3 object streams
- 63 named destinations out of 1000 (max. 500000)
- 120 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 400 PDF objects out of 1000 (max. 8388607)
+ 316 compressed objects within 4 object streams
+ 76 named destinations out of 1000 (max. 500000)
+ 127 words of extra memory for PDF output out of 10000 (max. 10000000)
 

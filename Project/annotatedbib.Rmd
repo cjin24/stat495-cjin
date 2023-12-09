@@ -77,6 +77,11 @@ https://www.sciencedirect.com/science/article/pii/S235271022300832X?casa_token=e
 
 - This contains explanation of GMMs, relation to BIC, comparison to traditional methods, application.
 
+## Cluster Using Gaussian Mixture Model
+
+https://www.mathworks.com/help/stats/clustering-using-gaussian-mixture-models.html#
+
+
 # Blogs
 
 ## Gaussian Mixture Models: What are they & when to use?
@@ -133,6 +138,30 @@ Xi, Z., Wei, S. S., Zhu, W., Beroza, G., Jie, Y., & Saloor, N. (2023). Deep Lear
 https://eartharxiv.org/repository/view/6222/
 
 - This paper introduces an integrated deep-learning-based workflow to detect deep earthquakes recorded by ocean-bottom seismographs (OBSs) and land-based stations in the Tonga subduction zone. With the goal of detecting different wave arrivals in the time-frequency domain, the researchers use Gaussian Mixture Model Associator GaMMA-1D to find associations between predicted phases. They find that this approach suppresses false predictions and significantly improves the detection of small earthquakes.
+
+## Gaussian Mixture Model Based Probabilistic Modeling of Images for Medical Image Segmentation
+
+Riaz, F., Rehman, S., Ajmal, M., Hafiz, R., Hassan, A., Aljohani, N. R., ... & Coimbra, M. (2020). Gaussian mixture model based probabilistic modeling of images for medical image segmentation. IEEE Access, 8, 16846-16856.
+
+https://ieeexplore.ieee.org/abstract/document/8962095
+
+## A Dedicated Mixture Model for Clustering Smart Meter Data: Identification and Analysis of Electricity Consumption Behaviors
+
+Melzi, F. N., Same, A., Zayani, M. H., & Oukhellou, L. (2017). A dedicated mixture model for clustering smart meter data: identification and analysis of electricity consumption behaviors. Energies, 10(10), 1446.
+
+https://www.mdpi.com/1996-1073/10/10/1446
+
+## Stock price prediction using a novel approach in Gaussian mixture model-hidden Markov model
+
+Gopinathan, K. N., Murugesan, P., & Jeyaraj, J. J. (2023). Stock price prediction using a novel approach in Gaussian mixture model-hidden Markov model. International Journal of Intelligent Computing and Cybernetics.
+
+https://www.emerald.com/insight/content/doi/10.1108/IJICC-03-2023-0050/full/html
+
+## Model-based clustering of microarray expression data via latent Gaussian mixture models 
+
+McNicholas, P. D., & Murphy, T. B. (2010). Model-based clustering of microarray expression data via latent Gaussian mixture models. Bioinformatics, 26(21), 2705-2712.
+
+https://academic.oup.com/bioinformatics/article/26/21/2705/212794
 
 
 # R Packages
