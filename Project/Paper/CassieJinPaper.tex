@@ -181,12 +181,10 @@ employs a combination of multiple Gaussian distributions and, as a
 result, excels at capturing the various latent structures within the
 data \citep{kumar2022gaussian}.
 
-\begin{figure}
-\centering
-\includegraphics{3.jpg}
-\caption{A multimodal distribution, where each peak represents a
-different Gaussian distribution or the cluster in the dataset (Ravihara,
-2023).}
+\begin{figure}[htbp] 
+\centering 
+\includegraphics[width=4in]{3.jpg} 
+\caption{A multimodal distribution, where each peak represents a different Gaussian distribution or the cluster in the dataset (Ravihara, 2023).}
 \end{figure}
 
 We understand k-means clustering to be a method that partitions
@@ -461,18 +459,16 @@ Literature}\label{general-applications-in-literature}}
   of public buildings \citep{huang2023gaussian}.
 \end{itemize}
 
-\begin{figure}
-\centering
-\includegraphics{1.jpg}
-\caption{Daily electricity consumption trends of various public
-buildings in different periods \citep{huang2023gaussian}.}
+\begin{figure}[htbp] 
+\centering 
+\includegraphics[width=4in]{1.jpg} 
+\caption{Daily electricity consumption trends of various public buildings in different periods [@huang2023gaussian].}
 \end{figure}
 
-\begin{figure}
-\centering
-\includegraphics{2.jpg}
-\caption{On the right, (b), the visualized Gaussian mixture model for
-each condition \citep{huang2023gaussian}.}
+\begin{figure}[htbp] 
+\centering 
+\includegraphics[width=4in]{2.jpg} 
+\caption{On the right, (b), the visualized Gaussian mixture model for each condition [@huang2023gaussian].}
 \end{figure}
 
 \begin{itemize}
@@ -860,7 +856,9 @@ GMM process on a familiar dataset, \texttt{iris}. Given a matrix
 \texttt{x}, \texttt{mu} (mean), and \texttt{sigma} (covariance), we
 write a function that calculates the probability density for each row,
 and this function is used to fill in the components of the mean vector
-and covariance matrix for the GMM.
+and covariance matrix for the GMM. Assuming that we do not know which
+class each \(x_i\) belongs to, the GMM can help us determine each
+distinct species of flower.
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -884,30 +882,37 @@ and covariance matrix for the GMM.
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{ProjectDraftForPeer_files/figure-latex/unnamed-chunk-5-1.pdf}
+\includegraphics{CassieJinPaper_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+We start by initializing the parameters, borrowing from the
+\texttt{mclust} package to use its hierarchical clustering technique for
+better mean estimates.
 
 \begin{Shaded}
 \begin{Highlighting}[]
 \CommentTok{\# Mclust comes with hierarchical clustering}
-\CommentTok{\# {-}\textgreater{} initialize 3 different classes}
+\CommentTok{\# {-}\textgreater{} initialize 3 different clusters}
 \NormalTok{initialk }\OtherTok{\textless{}{-}} \FunctionTok{hc}\NormalTok{(}\AttributeTok{data =}\NormalTok{ iris, }\AttributeTok{modelName =} \StringTok{"EII"}\NormalTok{)}
 \NormalTok{initialk }\OtherTok{\textless{}{-}} \FunctionTok{hclass}\NormalTok{(initialk, }\DecValTok{3}\NormalTok{)}
-\CommentTok{\# split by class, calculate column{-}means for each class}
+
+\CommentTok{\# split by class, calculate column{-}means for each cluster}
 \NormalTok{mu }\OtherTok{\textless{}{-}} \FunctionTok{split}\NormalTok{(iris[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], initialk)}
 \NormalTok{mu }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(}\FunctionTok{sapply}\NormalTok{(mu, colMeans))}
-\CommentTok{\# covariance matrix for each initial class}
+
+\CommentTok{\# covariance matrix for each initial cluster}
 \NormalTok{cov }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}\FunctionTok{diag}\NormalTok{(}\DecValTok{4}\NormalTok{), }\FunctionTok{diag}\NormalTok{(}\DecValTok{4}\NormalTok{), }\FunctionTok{diag}\NormalTok{(}\DecValTok{4}\NormalTok{))}
+
 \CommentTok{\# mixing components}
 \NormalTok{a }\OtherTok{\textless{}{-}} \FunctionTok{runif}\NormalTok{(}\DecValTok{3}\NormalTok{)}
 \NormalTok{a }\OtherTok{\textless{}{-}}\NormalTok{ a}\SpecialCharTok{/}\FunctionTok{sum}\NormalTok{(a)}
 
 \ControlFlowTok{for}\NormalTok{ (iter }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\NormalTok{max\_iter) \{}
-\CommentTok{\# calculate PDF with class means and covariances}
+\CommentTok{\# calculate PDF with cluster means and covariances}
 \NormalTok{z }\OtherTok{\textless{}{-}} \FunctionTok{cbind}\NormalTok{(}\FunctionTok{mvpdf}\NormalTok{(}\AttributeTok{x =}\NormalTok{ iris[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\AttributeTok{mu =}\NormalTok{ mu[}\DecValTok{1}\NormalTok{, ], }\AttributeTok{sigma =}\NormalTok{ cov[[}\DecValTok{1}\NormalTok{]]),}
            \FunctionTok{mvpdf}\NormalTok{(}\AttributeTok{x =}\NormalTok{ iris[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\AttributeTok{mu =}\NormalTok{ mu[}\DecValTok{2}\NormalTok{, ], }\AttributeTok{sigma =}\NormalTok{ cov[[}\DecValTok{2}\NormalTok{]]),}
            \FunctionTok{mvpdf}\NormalTok{(}\AttributeTok{x =}\NormalTok{ iris[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\AttributeTok{mu =}\NormalTok{ mu[}\DecValTok{3}\NormalTok{, ], }\AttributeTok{sigma =}\NormalTok{ cov[[}\DecValTok{3}\NormalTok{]]))}
 
-\CommentTok{\# expectation step for each class}
+\CommentTok{\# expectation step for each cluster}
 \NormalTok{r }\OtherTok{\textless{}{-}} \FunctionTok{cbind}\NormalTok{((a[}\DecValTok{1}\NormalTok{] }\SpecialCharTok{*}\NormalTok{ z[, }\DecValTok{1}\NormalTok{])}\SpecialCharTok{/}\FunctionTok{rowSums}\NormalTok{(}\FunctionTok{t}\NormalTok{((}\FunctionTok{t}\NormalTok{(z) }\SpecialCharTok{*}\NormalTok{ a))),}
 \NormalTok{           (a[}\DecValTok{2}\NormalTok{] }\SpecialCharTok{*}\NormalTok{ z[, }\DecValTok{2}\NormalTok{])}\SpecialCharTok{/}\FunctionTok{rowSums}\NormalTok{(}\FunctionTok{t}\NormalTok{((}\FunctionTok{t}\NormalTok{(z) }\SpecialCharTok{*}\NormalTok{ a))),}
 \NormalTok{           (a[}\DecValTok{3}\NormalTok{] }\SpecialCharTok{*}\NormalTok{ z[, }\DecValTok{3}\NormalTok{])}\SpecialCharTok{/}\FunctionTok{rowSums}\NormalTok{(}\FunctionTok{t}\NormalTok{((}\FunctionTok{t}\NormalTok{(z) }\SpecialCharTok{*}\NormalTok{ a))))}
@@ -951,6 +956,22 @@ and covariance matrix for the GMM.
 \end{Highlighting}
 \end{Shaded}
 
+During each iteration, the mean values are updated such that their
+log-likelihoods are maximized. The log-likelihood function experiences
+diminishing returns for each iteration of the EM algorithm, and the
+convergence occurs as the marginal utility of the function approaches
+zero, i.e.~the change between each iteration becomes small. Thus, if we
+calculate the log-likelihood for each iteration, we can estimate the
+most effective approach for estimating the mixtures. In other words, we
+estimate the probability density of each component Gaussian, combine
+them into one, and take the log across all of the points. The resulting
+sum of the logs is the likelihood estimate.
+
+The \texttt{Mclust} package takes the log-likelihood estimate and
+calculates the BIC as a metric for goodness of fit. We can compute a
+number of different models with \(k\) number of classes and compare the
+BIC values.
+
 \begin{Shaded}
 \begin{Highlighting}[]
 \CommentTok{\# plot after each iteration}
@@ -960,7 +981,7 @@ and covariance matrix for the GMM.
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{ProjectDraftForPeer_files/figure-latex/unnamed-chunk-6-1.pdf}
+\includegraphics{CassieJinPaper_files/figure-latex/unnamed-chunk-7-1.pdf}
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -968,11 +989,21 @@ and covariance matrix for the GMM.
 \NormalTok{mcl.model }\OtherTok{\textless{}{-}} \FunctionTok{Mclust}\NormalTok{(iris[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\DecValTok{3}\NormalTok{)}
 
 \CommentTok{\# plot results}
-\FunctionTok{plot}\NormalTok{(mcl.model, }\AttributeTok{what =} \StringTok{"classification"}\NormalTok{, }\AttributeTok{main =} \StringTok{"Mclust Classification"}\NormalTok{)}
+\FunctionTok{plot}\NormalTok{(mcl.model, }\AttributeTok{what =} \StringTok{"classification"}\NormalTok{, }\AttributeTok{main =} \StringTok{"Mclust Clustering"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{ProjectDraftForPeer_files/figure-latex/unnamed-chunk-7-1.pdf}
+\includegraphics{CassieJinPaper_files/figure-latex/unnamed-chunk-8-1.pdf}
+
+In this toy example, we observe four quantitative variables from the
+convenient dataset \texttt{iris} and iterate through the expectation and
+maximization steps to optimize the mean and covariance values of the
+data. We utilize BIC to find the most appropriate number of iterations
+(the model with the minimum BIC value is the relatively optimal model,
+while the model with the maximum value is the optimal model when the BIC
+value is negative \citep{huang2023gaussian}), and after setting
+\(k = 3\) clusters, we see how the data are optimally grouped into
+component Gaussian distributions.
 
 \hypertarget{breast-cancer-in-wisconsin}{%
 \subsection{Breast Cancer in
@@ -991,25 +1022,25 @@ a regression model for predicting \texttt{diagnosis}).
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{kable}\NormalTok{(}\FunctionTok{head}\NormalTok{(breast\_cancer[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{5}\NormalTok{]))}
+\FunctionTok{kable}\NormalTok{(}\FunctionTok{head}\NormalTok{(breast\_cancer[}\DecValTok{55}\SpecialCharTok{:}\DecValTok{60}\NormalTok{, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{5}\NormalTok{]))}
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tabular}{r|r|r|r|l}
+\begin{tabular}{l|r|r|r|r|l}
 \hline
-radius\_mean & texture\_mean & area\_mean & concave\_points\_mean & diagnosis\\
+  & radius\_mean & texture\_mean & area\_mean & concave\_points\_mean & diagnosis\\
 \hline
-17.99 & 10.38 & 1001.0 & 0.14710 & M\\
+55 & 15.100 & 22.02 & 712.8 & 0.033340 & M\\
 \hline
-20.57 & 17.77 & 1326.0 & 0.07017 & M\\
+56 & 11.520 & 18.75 & 409.0 & 0.022780 & B\\
 \hline
-19.69 & 21.25 & 1203.0 & 0.12790 & M\\
+57 & 19.210 & 18.57 & 1152.0 & 0.089940 & M\\
 \hline
-11.42 & 20.38 & 386.1 & 0.10520 & M\\
+58 & 14.710 & 21.59 & 656.9 & 0.081230 & M\\
 \hline
-20.29 & 14.34 & 1297.0 & 0.10430 & M\\
+59 & 13.050 & 19.31 & 527.2 & 0.004167 & B\\
 \hline
-12.45 & 15.70 & 477.1 & 0.08089 & M\\
+60 & 8.618 & 11.79 & 224.5 & 0.007799 & B\\
 \hline
 \end{tabular}
 
@@ -1029,88 +1060,83 @@ radius\_mean & texture\_mean & area\_mean & concave\_points\_mean & diagnosis\\
 
 \NormalTok{initialk }\OtherTok{\textless{}{-}} \FunctionTok{hc}\NormalTok{(}\AttributeTok{data =}\NormalTok{ breast\_cancer, }\AttributeTok{modelName =} \StringTok{"EII"}\NormalTok{)}
 \NormalTok{initialk }\OtherTok{\textless{}{-}} \FunctionTok{hclass}\NormalTok{(initialk, }\DecValTok{3}\NormalTok{)}
-\CommentTok{\# mean for each class}
+
+\CommentTok{\# mean for each cluster}
 \NormalTok{mu }\OtherTok{\textless{}{-}} \FunctionTok{split}\NormalTok{(breast\_cancer[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], initialk)}
 \NormalTok{mu }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(}\FunctionTok{sapply}\NormalTok{(mu, colMeans))}
-\CommentTok{\# covariance matrix for each initial class}
+
+\CommentTok{\# covariance matrix for each initial cluster}
 \NormalTok{cov }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}\FunctionTok{diag}\NormalTok{(}\DecValTok{4}\NormalTok{), }\FunctionTok{diag}\NormalTok{(}\DecValTok{4}\NormalTok{), }\FunctionTok{diag}\NormalTok{(}\DecValTok{4}\NormalTok{))}
+
 \CommentTok{\# mixing components}
 \NormalTok{a }\OtherTok{\textless{}{-}} \FunctionTok{runif}\NormalTok{(}\DecValTok{3}\NormalTok{)}
 \NormalTok{a }\OtherTok{\textless{}{-}}\NormalTok{ a}\SpecialCharTok{/}\FunctionTok{sum}\NormalTok{(a)}
 
 \NormalTok{mcl.model }\OtherTok{\textless{}{-}} \FunctionTok{Mclust}\NormalTok{(breast\_cancer[, }\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\DecValTok{3}\NormalTok{)}
-\FunctionTok{plot}\NormalTok{(mcl.model, }\AttributeTok{what =} \StringTok{"classification"}\NormalTok{, }\AttributeTok{main =} \StringTok{"Mclust Classification"}\NormalTok{)}
+\FunctionTok{plot}\NormalTok{(mcl.model, }\AttributeTok{what =} \StringTok{"classification"}\NormalTok{, }\AttributeTok{main =} \StringTok{"Mclust Clustering"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{ProjectDraftForPeer_files/figure-latex/unnamed-chunk-10-1.pdf}
+\includegraphics{CassieJinPaper_files/figure-latex/unnamed-chunk-11-1.pdf}
 
-\hypertarget{discussion}{%
-\section{Discussion}\label{discussion}}
+Here, we've built a GMM on a selection of significantly predictive
+quantitative variables for the diagnosis status of breast cancer
+patients in Wisconsin. Two of the variables, \texttt{radius\_mean} and
+\texttt{area\_mean}, clearly demonstrate a relationship due to the
+forumla directly relating the two measurements. However, for all other
+pairings among \texttt{radius\_mean}, \texttt{texture\_mean},
+\texttt{area\_mean}, \texttt{concave\_points\_mean}, the GMM was able to
+detect clusters resulting from underlying potential component
+distributions. With further analysis, these clusters could provide
+insight into the nature of the data itself and thus allow for more
+efficient prediction of diagnoses.
 
-How well does the write-up convey the findings/results of the
-application(s)/simulations? Are data sets and simulations described in
-enough depth for a peer to follow along? Is appropriate support (figures
-/ output, etc.) provided? Are tables / graphics / figures crafted well
-(captions, look nice, etc.)? Is each table / graphic / figure explained
-and interpreted well enough that a peer can understand the data it is
-presenting, as well as its purpose/relevance to the point it's meant to
-illustrate?
+\hypertarget{discussion-and-conclusion}{%
+\section{Discussion and Conclusion}\label{discussion-and-conclusion}}
 
-\hypertarget{conclusion}{%
-\section{Conclusion}\label{conclusion}}
+The mathematics of Gaussian mixture models draws on the familiar
+foundation of a singular Gaussian distribution and intuitively expands
+the formulas to encapsulate multiple distributions, thus allowing for a
+nuanced representation of data distributions. This inherent flexibility
+enables GMMs to transcend the limitations of single-distribution models,
+making them particularly well-suited for scenarios where data exhibits
+multimodal and non-Gaussian characteristics.
 
-The theoretical foundations, applications, and advancements of Gaussian
-Mixture Models, their capacity to capture the complexities inherent in
+To demonstrate the utility of Gaussian mixture models, we fitted a GMM
+on the dataset \texttt{breast\_cancer} from a study conducted in
+Wisconsin over 30 years ago. We were able to cluster the data into
+groups and characterize them by a combination of multiple Gaussian
+components. Relying heavily on the EM algorithm as the maximum
+likelihood method, the method estimates parameters of a mixture given a
+fixed number of mixture components through iterative steps. Metrics such
+as BIC then reflect the efficacy of the model fit, and we lastly achieve
+a hybrid model composed of \(k\) single Gaussian models.
+
+As an extension, we may explore how GMMs approach the issue of
+incomplete data. Probabilistic models, such as hidden Markov models or
+Bayesian networks, are commonly used to model biological data
+\citep{riaz2020gaussian}. Often, the only data available for training
+the are incomplete. Missing values can occur, for example, in medical
+diagnosis, where patient histories generally include results from a
+limited battery of tests. Alternatively, in gene expression clustering,
+incomplete data arise from the intentional omission of gene-to-cluster
+assignments in the probabilistic model. Further investigation into the
+integration of the EM algorithm in GMMs would reveal how parameter
+estimation can be achieved in models even with incomplete data. We may
+also analyze the GMM as a classifier in comparison with other
+conventional classifiers such as k-nearest neighbors (KNN), support
+vector machine (SVM), decision tree, and naive Bayes. Where GMMs do not
+perform well relatively, research finds new GMM classifiers that are
+significantly more competitive with with the other classification
+approaches \citep{wan2019novel}.
+
+This paper has aimed to provide a comprehensive understanding of
+Gaussian mixture models, emphasizing their importance as versatile tools
+in the pursuit of deciphering intricate data structures. I hope to
+inspire future research endeavors that push the boundaries of pattern
+recognition and contribute to the ever-evolving landscape of machine
+learning with the motivation of capturing the complexities inherent in
 real-world data.
-
-Probabilistic models, such as hidden Markov models or Bayesian networks,
-are commonly used to model biological data. Much of their popularity can
-be attributed to the existence of efficient and robust procedures for
-learning parameters from observations. Often, however, the only data
-available for training a probabilistic model are incomplete. Missing
-values can occur, for example, in medical diagnosis, where patient
-histories generally include results from a limited battery of tests.
-Alternatively, in gene expression clustering, incomplete data arise from
-the intentional omission of gene-to-cluster assignments in the
-probabilistic model. The expectation maximization algorithm enables
-parameter estimation in probabilistic models with incomplete data.
-
-This model can be regarded as a hybrid model composed of k single
-Gaussian models
-
-We may also understand the efficacy of a GMM through the Bayesian
-Information Criterion (BIC)
-
-In the process of using Gaussian mixture model for cluster analysis, one
-of the first tasks is to determine the optimal number of clusters.
-Bayesian information criterion (BIC) is often used for this purpose.
-Among the models with different number of clusters, the model with the
-minimum BIC value is the relatively optimal model, while the model with
-the maximum value is the optimal model when the BIC value is negative.
-\citep{huang2023gaussian}
-
-The goal of the GMM algorithm is to estimate the parameters of the
-Gaussian distributions, as well as the proportion of data points that
-come from each distribution. In contrast, K-means is a clustering
-algorithm that does not make any assumptions about the underlying
-distribution of the data points. Instead, it simply partitions the data
-points into K clusters, where each cluster is defined by its centroid.
-
-Gaussian mixture models are more flexible in terms of the shape of the
-clusters, whereas K-means is limited to spherical clusters.
-
-This piece analyzes the performance of GMM as a classifier in comparison
-with other conventional classifiers such as k-nearest neighbors (KNN),
-support vector machine (SVM), decision tree and naive Bayes. It finds
-that GMMs do not do well relative to the other methods, and the authors
-propose a new GMM classifier, SC-GMM, which is significantly more
-competitive with with the other classification approaches. It also
-includes a step-by-step explanation of the EM algorithm and BIC.
-\citep{wan2019novel}
-
-We built a GMM for a new dataset, the Breast Cancer Wisconsin
-(Diagnostic) Dataset and found
 
 \bibliographystyle{plainnat}
 \bibliography{bibliography.bib}

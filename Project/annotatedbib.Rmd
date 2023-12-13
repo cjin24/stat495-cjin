@@ -90,7 +90,7 @@ Kumar, A. (2022). Gaussian mixture models: What are they & when to use. Online, 
 
 https://vitalflux.com/gaussian-mixture-models-what-are-they-when-to-use/#What_are_some_real-world_examples_where_Gaussian_mixture_models_can_be_used
 
-- This blog piece explains what GMMs are and how the foundational expectation-maximization method acts in relation to GMM. It also delves into thhe key steps of using Gaussian mixture models for clustering, showing the differences between GMMs and other types of clustering algorithms such as k-means (since GMMs are a generlization of k-means clustering). Lastly, it lists scenarios when Gaussian mixture models can be used and briefly explains some real-world examples of application.
+- This blog piece explains what GMMs are and how the foundational expectation-maximization method acts in relation to GMM. It also delves into the key steps of using Gaussian mixture models for clustering, showing the differences between GMMs and other types of clustering algorithms such as k-means (since GMMs are a generlization of k-means clustering). Lastly, it lists scenarios when Gaussian mixture models can be used and briefly explains some real-world examples of application.
 
 ## Gaussian Mixture Model Clearly Explained
 

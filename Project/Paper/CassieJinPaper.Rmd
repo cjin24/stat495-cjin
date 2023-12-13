@@ -40,7 +40,11 @@ library(dplyr)
 
 In the landscape of machine learning, pattern recognition, and data analysis, the objective and the challenge often lie in capturing intricate data distributions as effectively as possible. It may be convenient to assign a single distribution that seems to fit well enough to a large data set, but it is much more insightful to identify patterns and clusters within the data. Clustering algorithms such as k-means clustering provide solutions to finding the patterns within observations, but such traditional methods still have limitations when it comes to identifying clusters of different shapes and sizes. For working with a diverse data set, the Gaussian mixture model (GMM) employs a combination of multiple Gaussian distributions and, as a result, excels at capturing the various latent structures within the data [@kumar2022gaussian].
 
-![A multimodal distribution, where each peak represents a different Gaussian distribution or the cluster in the dataset (Ravihara, 2023).](3.jpg)
+\begin{figure}[htbp] 
+\centering 
+\includegraphics[width=4in]{3.jpg} 
+\caption{A multimodal distribution, where each peak represents a different Gaussian distribution or the cluster in the dataset (Ravihara, 2023).}
+\end{figure}
 
 We understand k-means clustering to be a method that partitions observations into $k$ clusters in which each observation belongs to the cluster with the nearest mean. Like k-means clustering, the GMM is a type of machine learning algorithm, but instead, it groups data into different categories based on any underlying probability distributions. By identifying and merging multiple Gaussian components, the GMM achieves a parametric probability density function represented as a weighted sum of the densities corresponding to each Gaussian component [@reynolds2009gaussian]. The parameters in the method are estimated from training data using the iterative expectation-maximization (EM) algorithm, and in maximizing likelihood, GMM allows a representation of data that goes beyond the limitations of single-distribution models [@bouguila2020mixture]. The method's ability to model a wide array of distributions (multimodal, non-Gaussian, etc.) has made GMMs essential in various domains such as computer vision, speech recognition, anomaly detection, finance, marketing, and more.
 
@@ -123,7 +127,7 @@ c_m^{(j+1)} = \frac{1}{N} \sum_{t=1}^N h_m^{(j)}(t),
 \Sigma_m^{(j+1)} = \frac{\sum_{t=1}^N h_m^{(j)}(t) [x^{(t)} - \mu_m^{(j)}][x^{(t)} - \mu_m^{(j)}]^T}{\sum_{t=1}^N h_m^{(j)}(t)},
 \end{equation}
 
-The important aspects to notice about Equations \ref{c}-\ref{sigma} are the parameters being estimated, the superscripts $(j)$, and the component probabilities of the parameters represented by $h_m$. Given the current $(j)$ estimate for the parameters, the conditional probability for a given observation $x^{(t)}$ generated from a mixture component $m$ is determined for each data sample point at $t=1, ..., N$, where $N$ is the sample size [@do2008expectation]. We use step-wise guesses for the parameters of our mixture model and  allow the parameters to update such that the new component weights correspond to the average conditional probability, and each component mean and covariance is the component specific weighted average of the mean and covariance of the entire sample set. Thus, we achieve the "partial membership" of each data point in each constituent distribution. This expectation step is repeated to recompute new membership values, and the entire procedure is repeated until model parameters converge [@bouguila2020mixture].
+The important aspects to notice about Equations \ref{c}-\ref{sigma} are the parameters being estimated, the superscripts $(j)$, and the component probabilities of the parameters represented by $h_m$. Given the current $(j)$ estimate for the parameters, the conditional probability for a given observation $x^{(t)}$ generated from a mixture component $m$ is determined for each data sample point at $t=1, ..., N$, where $N$ is the sample size [@do2008expectation]. We use step-wise guesses for the parameters of our mixture model and allow the parameters to update such that the new component weights correspond to the average conditional probability, and each component mean and covariance is the component specific weighted average of the mean and covariance of the entire sample set. Thus, we achieve the "partial membership" of each data point in each constituent distribution. This expectation step is repeated to recompute new membership values, and the entire procedure is repeated until model parameters converge [@bouguila2020mixture].
 
 A particular advantage of the EM algorithm is that each successive iteration will not decrease the likelihood, a property not shared by many other maximization techniques [@reynolds2009gaussian]. Additionally, the EM algorithm naturally embeds constraints on the probability vector while avoiding extra computational costs to check and maintain appropriate values [@yu2015gaussian]. On the other hand, the EM algorithm can be too sensitive to initial values and may falsely identify local maxima. This problem can be addressed by evaluating at several initial points in the parameter space, but this may become computationally costly and undo the advantageous efficiency of the algorithm.
 
@@ -153,9 +157,17 @@ We know that the EM algorithm enables effective parameter estimation in probabil
 
 * Understanding the impact of COVID-19 on energy consumption: Researchers used the electricity data set of public buildings in Scotland and applied Gaussian Mixture Model (GMM) to explore the changes in electricity usage patterns throughout the pandemic, so as to understand the long-term impact of COVID-19 on energy consumption of public buildings [@huang2023gaussian].
 
-![Daily electricity consumption trends of various public buildings in different periods [@huang2023gaussian].](1.jpg)
+\begin{figure}[htbp] 
+\centering 
+\includegraphics[width=4in]{1.jpg} 
+\caption{Daily electricity consumption trends of various public buildings in different periods [@huang2023gaussian].}
+\end{figure}
 
-![On the right, (b), the visualized Gaussian mixture model for each condition [@huang2023gaussian].](2.jpg)
+\begin{figure}[htbp] 
+\centering 
+\includegraphics[width=4in]{2.jpg} 
+\caption{On the right, (b), the visualized Gaussian mixture model for each condition [@huang2023gaussian].}
+\end{figure}
 
 * Finding patterns in medical datasets: Medical researchers use GMMs to segment images into multiple categories based on their content or to find specific patterns in medical datasets. They can determine clusters of patients with similar symptoms, identify disease subtypes, and even predict outcomes [@riaz2020gaussian].
 
@@ -253,7 +265,7 @@ kable(head(choose_k$Results))
 
 ## Iris
 
-First, let us observe the multivariate normal PDF function and apply the GMM process on a familiar dataset, `iris`. Given a matrix `x`, `mu` (mean), and `sigma` (covariance), we write a function that calculates the probability density for each row, and this function is used to fill in the components of the mean vector and covariance matrix for the GMM.
+First, let us observe the multivariate normal PDF function and apply the GMM process on a familiar dataset, `iris`. Given a matrix `x`, `mu` (mean), and `sigma` (covariance), we write a function that calculates the probability density for each row, and this function is used to fill in the components of the mean vector and covariance matrix for the GMM. Assuming that we do not know which class each $x_i$ belongs to, the GMM can help us determine each distinct species of flower.
 
 ```{r}
 data(iris)
@@ -273,27 +285,34 @@ mvpdf <- function(x, mu, sigma) {
 # plot dataset
 plot(iris[, 1:4], col = iris$Species, pch = 18,
      main = "Fisher's Iris Dataset")
+```
 
+We start by initializing the parameters, borrowing from the `mclust` package to use its hierarchical clustering technique for better mean estimates.
+
+```{r}
 # Mclust comes with hierarchical clustering
-# -> initialize 3 different classes
+# -> initialize 3 different clusters
 initialk <- hc(data = iris, modelName = "EII")
 initialk <- hclass(initialk, 3)
-# split by class, calculate column-means for each class
+
+# split by class, calculate column-means for each cluster
 mu <- split(iris[, 1:4], initialk)
 mu <- t(sapply(mu, colMeans))
-# covariance matrix for each initial class
+
+# covariance matrix for each initial cluster
 cov <- list(diag(4), diag(4), diag(4))
+
 # mixing components
 a <- runif(3)
 a <- a/sum(a)
 
 for (iter in 1:max_iter) {
-# calculate PDF with class means and covariances
+# calculate PDF with cluster means and covariances
 z <- cbind(mvpdf(x = iris[, 1:4], mu = mu[1, ], sigma = cov[[1]]),
            mvpdf(x = iris[, 1:4], mu = mu[2, ], sigma = cov[[2]]),
            mvpdf(x = iris[, 1:4], mu = mu[3, ], sigma = cov[[3]]))
 
-# expectation step for each class
+# expectation step for each cluster
 r <- cbind((a[1] * z[, 1])/rowSums(t((t(z) * a))),
            (a[2] * z[, 2])/rowSums(t((t(z) * a))),
            (a[3] * z[, 3])/rowSums(t((t(z) * a))))
@@ -334,7 +353,13 @@ loglik <- sum(log(apply(t(t(z) * a), 1, sum)))
 # calculate BIC
 bic_values[iter] <- -2 * loglik + 14 * log(NROW(iris))
 }
+```
 
+During each iteration, the mean values are updated such that their log-likelihoods are maximized. The log-likelihood function experiences diminishing returns for each iteration of the EM algorithm, and the convergence occurs as the marginal utility of the function approaches zero, i.e. the change between each iteration becomes small. Thus, if we calculate the log-likelihood for each iteration, we can estimate the most effective approach for estimating the mixtures. In other words, we estimate the probability density of each component Gaussian, combine them into one, and take the log across all of the points. The resulting sum of the logs is the likelihood estimate.
+
+The `Mclust` package takes the log-likelihood estimate and calculates the BIC as a metric for goodness of fit. We can compute a number of different models with $k$ number of classes and compare the BIC values.
+
+```{r}
 # plot after each iteration
 par(mfrow = c(1, 2))
 plot(bic_values, type = "l", lwd = 2, col = "blue", main = "BIC",
@@ -344,8 +369,10 @@ plot(bic_values, type = "l", lwd = 2, col = "blue", main = "BIC",
 mcl.model <- Mclust(iris[, 1:4], 3)
 
 # plot results
-plot(mcl.model, what = "classification", main = "Mclust Classification")
+plot(mcl.model, what = "classification", main = "Mclust Clustering")
 ```
+
+In this toy example, we observe four quantitative variables from the convenient dataset `iris` and iterate through the expectation and maximization steps to optimize the mean and covariance values of the data. We utilize BIC to find the most appropriate number of iterations (the model with the minimum BIC value is the relatively optimal model, while the model with the maximum value is the optimal model when the BIC value is negative [@huang2023gaussian]), and after setting $k = 3$ clusters, we see how the data are optimally grouped into component Gaussian distributions.
 
 ## Breast Cancer in Wisconsin
 
@@ -381,7 +408,7 @@ breast_cancer <- breast_cancer %>%
 ```
 
 ```{r}
-kable(head(breast_cancer[, 1:5]))
+kable(head(breast_cancer[55:60, 1:5]))
 ```
 
 ```{r}
@@ -399,34 +426,39 @@ mvpdf <- function(x, mu, sigma) {
 
 initialk <- hc(data = breast_cancer, modelName = "EII")
 initialk <- hclass(initialk, 3)
-# mean for each class
+
+# mean for each cluster
 mu <- split(breast_cancer[, 1:4], initialk)
 mu <- t(sapply(mu, colMeans))
-# covariance matrix for each initial class
+
+# covariance matrix for each initial cluster
 cov <- list(diag(4), diag(4), diag(4))
+
 # mixing components
 a <- runif(3)
 a <- a/sum(a)
 
 mcl.model <- Mclust(breast_cancer[, 1:4], 3)
-plot(mcl.model, what = "classification", main = "Mclust Classification")
+plot(mcl.model, what = "classification", main = "Mclust Clustering")
 ```
 
-# Discussion
+Here, we've built a GMM on a selection of significantly predictive quantitative variables for the diagnosis status of breast cancer patients in Wisconsin. Two of the variables, `radius_mean` and `area_mean`, clearly demonstrate a relationship due to them being radius and area. However, for all other pairings among `radius_mean`, `texture_mean`, `area_mean`, `concave_points_mean`, the GMM was able to detect 
 
-How well does the write-up convey the findings/results of the application(s)/simulations? Are data sets and simulations described in enough depth for a peer to follow along? Is appropriate support (figures / output, etc.) provided? Are tables / graphics / figures crafted well (captions, look nice, etc.)? Is each table / graphic / figure explained and interpreted well enough that a peer can understand the data it is presenting, as well as its purpose/relevance to the point it’s meant to illustrate?
+# Discussion and Conclusion
+
+How well does the write-up convey the findings/results of the application(s)/simulations? Are tables / graphics / figures crafted well (captions, look nice, etc.)? Is each table / graphic / figure explained and interpreted well enough that a peer can understand the data it is presenting, as well as its purpose/relevance to the point it’s meant to illustrate?
 
 # Conclusion
 
 The theoretical foundations, applications, and advancements of Gaussian Mixture Models, their capacity to capture the complexities inherent in real-world data.
 
-Probabilistic models, such as hidden Markov models or Bayesian networks, are commonly used to model biological data. Much of their popularity can be attributed to the existence of efficient and robust procedures for learning parameters from observations. Often, however, the only data available for training a probabilistic model are incomplete. Missing values can occur, for example, in medical diagnosis, where patient histories generally include results from a limited battery of tests. Alternatively, in gene expression clustering, incomplete data arise from the intentional omission of gene-to-cluster assignments in the probabilistic model.  The expectation maximization algorithm enables parameter estimation in probabilistic models with incomplete data.
+Probabilistic models, such as hidden Markov models or Bayesian networks, are commonly used to model biological data. Much of their popularity can be attributed to the existence of efficient and robust procedures for learning parameters from observations. Often, however, the only data available for training a probabilistic model are incomplete. Missing values can occur, for example, in medical diagnosis, where patient histories generally include results from a limited battery of tests. Alternatively, in gene expression clustering, incomplete data arise from the intentional omission of gene-to-cluster assignments in the probabilistic model. The expectation maximization algorithm enables parameter estimation in probabilistic models with incomplete data.
 
 This model can be regarded as a hybrid model composed of k single Gaussian models
 
 We may also understand the efficacy of a GMM through the Bayesian Information Criterion (BIC)
 
-In the process of using Gaussian mixture model for cluster analysis, one of the first tasks is to determine the optimal number of clusters. Bayesian information criterion (BIC) is often used for this purpose. Among the models with different number of clusters, the model with the minimum BIC value is the relatively optimal model, while the model with the maximum value is the optimal model when the BIC value is negative. [@huang2023gaussian]
+In the process of using Gaussian mixture model for cluster analysis, one of the first tasks is to determine the optimal number of clusters. Bayesian information criterion (BIC) is often used for this purpose. Among the models with different number of clusters, 
 
 The goal of the GMM algorithm is to estimate the parameters of the Gaussian distributions, as well as the proportion of data points that come from each distribution. In contrast, K-means is a clustering algorithm that does not make any assumptions about the underlying distribution of the data points. Instead, it simply partitions the data points into K clusters, where each cluster is defined by its centroid.
 
