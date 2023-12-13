@@ -364,7 +364,9 @@ The `Mclust` package takes the log-likelihood estimate and calculates the BIC as
 par(mfrow = c(1, 2))
 plot(bic_values, type = "l", lwd = 2, col = "blue", main = "BIC",
      xlab = "Iterations", ylab = "Score")
+```
 
+```{r}
 # select 4 continuous variables, look for three distinct groups
 mcl.model <- Mclust(iris[, 1:4], 3)
 
@@ -442,28 +444,14 @@ mcl.model <- Mclust(breast_cancer[, 1:4], 3)
 plot(mcl.model, what = "classification", main = "Mclust Clustering")
 ```
 
-Here, we've built a GMM on a selection of significantly predictive quantitative variables for the diagnosis status of breast cancer patients in Wisconsin. Two of the variables, `radius_mean` and `area_mean`, clearly demonstrate a relationship due to them being radius and area. However, for all other pairings among `radius_mean`, `texture_mean`, `area_mean`, `concave_points_mean`, the GMM was able to detect 
+Here, we've built a GMM on a selection of significantly predictive quantitative variables for the diagnosis status of breast cancer patients in Wisconsin. Two of the variables, `radius_mean` and `area_mean`, clearly demonstrate a relationship due to the forumla directly relating the two measurements. However, for all other pairings among `radius_mean`, `texture_mean`, `area_mean`, `concave_points_mean`, the GMM was able to detect clusters resulting from underlying potential component distributions. With further analysis, these clusters could provide insight into the nature of the data itself and thus allow for more efficient prediction of diagnoses.
 
 # Discussion and Conclusion
 
-How well does the write-up convey the findings/results of the application(s)/simulations? Are tables / graphics / figures crafted well (captions, look nice, etc.)? Is each table / graphic / figure explained and interpreted well enough that a peer can understand the data it is presenting, as well as its purpose/relevance to the point it’s meant to illustrate?
+The mathematics of Gaussian mixture models draws on the familiar foundation of a singular Gaussian distribution and intuitively expands the formulas to encapsulate multiple distributions, thus allowing for a nuanced representation of data distributions. This inherent flexibility enables GMMs to transcend the limitations of single-distribution models, making them particularly well-suited for scenarios where data exhibits multimodal and non-Gaussian characteristics.
 
-# Conclusion
+To demonstrate the utility of Gaussian mixture models, we fitted a GMM on the dataset `breast_cancer` from a study conducted in Wisconsin over 30 years ago. We were able to cluster the data into groups and characterize them by a combination of multiple Gaussian components. Relying heavily on the EM algorithm as the maximum likelihood method, the method estimates parameters of a mixture given a fixed number of mixture components through iterative steps. Metrics such as BIC then reflect the efficacy of the model fit, and we lastly achieve a hybrid model composed of $k$ single Gaussian models.
 
-The theoretical foundations, applications, and advancements of Gaussian Mixture Models, their capacity to capture the complexities inherent in real-world data.
+As an extension, we may explore how GMMs approach the issue of incomplete data. Probabilistic models, such as hidden Markov models or Bayesian networks, are commonly used to model biological data [@riaz2020gaussian]. Often, the only data available for training the are incomplete. Missing values can occur, for example, in medical diagnosis, where patient histories generally include results from a limited battery of tests. Alternatively, in gene expression clustering, incomplete data arise from the intentional omission of gene-to-cluster assignments in the probabilistic model. Further investigation into the integration of the EM algorithm in GMMs would reveal how parameter estimation can be achieved in models even with incomplete data. We may also analyze the GMM as a classifier in comparison with other conventional classifiers such as k-nearest neighbors (KNN), support vector machine (SVM), decision tree, and naive Bayes. Where GMMs do not perform well relatively, research finds new GMM classifiers that are significantly more competitive with with the other classification approaches [@wan2019novel].
 
-Probabilistic models, such as hidden Markov models or Bayesian networks, are commonly used to model biological data. Much of their popularity can be attributed to the existence of efficient and robust procedures for learning parameters from observations. Often, however, the only data available for training a probabilistic model are incomplete. Missing values can occur, for example, in medical diagnosis, where patient histories generally include results from a limited battery of tests. Alternatively, in gene expression clustering, incomplete data arise from the intentional omission of gene-to-cluster assignments in the probabilistic model. The expectation maximization algorithm enables parameter estimation in probabilistic models with incomplete data.
-
-This model can be regarded as a hybrid model composed of k single Gaussian models
-
-We may also understand the efficacy of a GMM through the Bayesian Information Criterion (BIC)
-
-In the process of using Gaussian mixture model for cluster analysis, one of the first tasks is to determine the optimal number of clusters. Bayesian information criterion (BIC) is often used for this purpose. Among the models with different number of clusters, 
-
-The goal of the GMM algorithm is to estimate the parameters of the Gaussian distributions, as well as the proportion of data points that come from each distribution. In contrast, K-means is a clustering algorithm that does not make any assumptions about the underlying distribution of the data points. Instead, it simply partitions the data points into K clusters, where each cluster is defined by its centroid.
-
-Gaussian mixture models are more flexible in terms of the shape of the clusters, whereas K-means is limited to spherical clusters.
-
-This piece analyzes the performance of GMM as a classifier in comparison with other conventional classifiers such as k-nearest neighbors (KNN), support vector machine (SVM), decision tree and naive Bayes. It finds that GMMs do not do well relative to the other methods, and the authors propose a new GMM classifier, SC-GMM, which is significantly more competitive with with the other classification approaches. It also includes a step-by-step explanation of the EM algorithm and BIC. [@wan2019novel]
-
-We built a GMM for a new dataset, the Breast Cancer Wisconsin (Diagnostic) Dataset and found
+This paper has aimed to provide a comprehensive understanding of Gaussian mixture models, emphasizing their importance as versatile tools in the pursuit of deciphering intricate data structures. I hope to inspire future research endeavors that push the boundaries of pattern recognition and contribute to the ever-evolving landscape of machine learning with the motivation of capturing the complexities inherent in real-world data.
